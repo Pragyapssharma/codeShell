@@ -24,7 +24,6 @@ public class Main {
 
             // Default case for unknown commands
             System.out.println(input + ": command not found");
-        }
 
         }
     }
