@@ -12,13 +12,12 @@ public class Main {
             // Exit condition
             if ("exit 0".equalsIgnoreCase(input)) {
                 System.out.println("Exiting shell...");
+                scanner.close(); // Close resources before exiting
                 System.exit(0); // Exit with status 0
             }
 
             // Simulate command execution (currently, all commands are treated as invalid)
             System.out.println(input + ": command not found");
         }
-
-        scanner.close(); // Close the scanner when exiting
     }
 }
