@@ -47,7 +47,7 @@ public class Main {
                         File file = new File(path, command);
                         if (file.exists() && file.isFile()) {
                             System.out.println(command + " is " + file.getAbsolutePath());
-                            continue;
+                            return;
                         }
                     }
                 }
