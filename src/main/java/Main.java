@@ -15,8 +15,17 @@ public class Main {
                 System.exit(0); // Exit with status 0
             }
 
-            // Simulate command execution (currently, all commands are treated as invalid)
+            // Handle "echo" command
+            if (input.startsWith("echo ")) {
+                String echoOutput = input.substring(5); // Extract everything after "echo "
+                System.out.println(echoOutput);
+                continue; // Skip "command not found" message
+            }
+
+            // Default case for unknown commands
             System.out.println(input + ": command not found");
+        }
+
         }
     }
 }
