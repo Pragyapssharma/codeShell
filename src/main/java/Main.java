@@ -10,9 +10,9 @@ public class Main {
             String input = scanner.nextLine().trim(); // Read user input & remove extra spaces
 
             // Exit condition
-            if ("exit".equalsIgnoreCase(input)) {
+            if ("exit 0".equalsIgnoreCase(input)) {
                 System.out.println("Exiting shell...");
-                break; // Stop the loop if user types 'exit'
+                System.exit(0); // Exit with status 0
             }
 
             // Simulate command execution (currently, all commands are treated as invalid)
