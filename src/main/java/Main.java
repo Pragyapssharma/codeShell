@@ -1,30 +1,46 @@
 import java.util.Scanner;
+import java.util.Set;
+import java.util.HashSet;
 
 public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
-        while (true) { // Infinite loop to keep reading input
-            System.out.print("$ "); // Print the shell prompt
+        // Define shell builtins
+        Set<String> builtins = new HashSet<>();
+        builtins.add("echo");
+        builtins.add("exit");
+        builtins.add("type");
 
-            String input = scanner.nextLine().trim(); // Read user input & remove extra spaces
+        while (true) {
+            System.out.print("$ "); // Print shell prompt
+            String input = scanner.nextLine().trim(); // Read user input
 
-            // Exit condition
+            // Handle "exit 0" command
             if ("exit 0".equalsIgnoreCase(input)) {
-                scanner.close(); // Close resources before exiting
-                System.exit(0); // Exit with status 0
+                scanner.close();
+                System.exit(0);
             }
 
             // Handle "echo" command
             if (input.startsWith("echo ")) {
-                String echoOutput = input.substring(5); // Extract everything after "echo "
-                System.out.println(echoOutput);
-                continue; // Skip "command not found" message
+                System.out.println(input.substring(5));
+                continue;
+            }
+
+            // Handle "type" command
+            if (input.startsWith("type ")) {
+                String command = input.substring(5).trim(); // Extract command
+                if (builtins.contains(command)) {
+                    System.out.println(command + " is a shell builtin");
+                } else {
+                    System.out.println(command + ": not found");
+                }
+                continue;
             }
 
             // Default case for unknown commands
             System.out.println(input + ": command not found");
-
         }
     }
 }
