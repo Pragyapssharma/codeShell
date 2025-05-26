@@ -31,7 +31,7 @@ public class Main {
 
             // Handle "type" command
             if (input.startsWith("type ")) {
-                String command = input.substring(5).trim(); // Extract command name
+                String command = input.substring(5).trim();
 
                 // Check if command is a shell builtin
                 if (builtins.contains(command)) {
@@ -42,7 +42,7 @@ public class Main {
                 // Search for executable in PATH
                 String pathEnv = System.getenv("PATH");
                 if (pathEnv != null) {
-                    String[] paths = pathEnv.split(":"); // Split by ':'
+                    String[] paths = pathEnv.split(":");
                     for (String path : paths) {
                         File file = new File(path, command);
                         if (file.exists() && file.isFile()) {
