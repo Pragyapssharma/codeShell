@@ -11,7 +11,6 @@ public class Main {
 
             // Exit condition
             if ("exit 0".equalsIgnoreCase(input)) {
-                System.out.println("Exiting shell...");
                 scanner.close(); // Close resources before exiting
                 System.exit(0); // Exit with status 0
             }
