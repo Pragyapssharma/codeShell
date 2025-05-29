@@ -24,7 +24,7 @@ public class Main {
                 continue;
             }
 
-            // Handle "type" command with PATH lookup
+         // Handle "type" command with PATH lookup
             if (input.startsWith("type ")) {
                 String command = input.substring(5).trim();
 
@@ -42,14 +42,13 @@ public class Main {
                         File file = new File(dir, command);
                         if (file.exists() && file.isFile()) {
                             System.out.println(command + " is " + file.getAbsolutePath());
-                            continue;
+                            break;  // Stop searching after the first match
                         }
                     }
                 }
 
-                // Command not found
+                // If no match was found, print not found
                 System.out.println(command + ": not found");
-                continue;
             }
 
             // Handle "pwd" command (dummy path)
