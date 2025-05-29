@@ -36,19 +36,24 @@ public class Main {
 
                 // Search for the command in PATH directories
                 String pathEnv = System.getenv("PATH"); // Get PATH environment variable
+                boolean found = false; // Track if we found an executable
+                
                 if (pathEnv != null) {
                     String[] paths = pathEnv.split(":"); // Split by colon
                     for (String dir : paths) {
                         File file = new File(dir, command);
                         if (file.exists() && file.isFile()) {
                             System.out.println(command + " is " + file.getAbsolutePath());
-                            break;  // Stop searching after the first match
+                            found = true;
+                            break; // Stop searching after the first match
                         }
                     }
                 }
 
                 // If no match was found, print not found
-                System.out.println(command + ": not found");
+                if (!found) {
+                    System.out.println(command + ": not found");
+                }
             }
 
             // Handle "pwd" command (dummy path)
