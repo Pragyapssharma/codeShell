@@ -150,31 +150,9 @@ public class Main {
         List<String> extractedWords = new ArrayList<>();
         Matcher matcher = Pattern.compile("'([^']*)'|\\S+").matcher(content);
 
-        StringBuilder concatenated = new StringBuilder();
-        boolean lastWasQuoted = false;
-
         while (matcher.find()) {
             String match = matcher.group(1) != null ? matcher.group(1) : matcher.group();
-
-            // Merge adjacent quoted words, but add space when transitioning from a non-quoted word
-            if (lastWasQuoted && matcher.group(1) != null) {
-                concatenated.append(match);
-            } else {
-                if (!concatenated.isEmpty()) {
-                    extractedWords.add(concatenated.toString());
-                    concatenated.setLength(0); // Reset buffer
-                }
-                if (lastWasQuoted) {
-                    extractedWords.add(concatenated.toString()); // Ensure space separation
-                    concatenated.setLength(0);
-                }
-                concatenated.append(match);
-            }
-            lastWasQuoted = (matcher.group(1) != null);
-        }
-
-        if (!concatenated.isEmpty()) {
-            extractedWords.add(concatenated.toString());
+            extractedWords.add(match);
         }
 
         System.out.println(String.join(" ", extractedWords));
