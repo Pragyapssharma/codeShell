@@ -5,7 +5,11 @@ import java.nio.file.*;
 public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
+        
         Set<String> builtins = new HashSet<>(Arrays.asList("echo", "exit", "type", "pwd", "ls", "help"));
+        
+        private static String currentDirectory = System.getProperty("user.dir"); // Track manually
+
 
         while (true) {
             System.out.print("$ "); // Shell prompt
@@ -30,12 +34,24 @@ public class Main {
                 findExecutable(command);
                 continue;
             }
+            
+            if (input.startsWith("cd ")) {
+                String path = input.substring(3).trim();
+                changeDirectory(path);
+                continue;
+            }
 
+            if ("pwd".equalsIgnoreCase(input)) {
+                System.out.println(currentDirectory); // Use manually tracked directory
+                continue;
+            }
+
+/*
             if ("pwd".equalsIgnoreCase(input)) {
             	System.out.println(System.getProperty("user.dir"));
                 continue;
             }
-
+*/
             if ("ls".equalsIgnoreCase(input)) {
                 System.out.println("file1.txt  file2.txt  folder1/");
                 continue;
@@ -91,4 +107,15 @@ public class Main {
             System.out.println(command + ": command not found");
         }
     }
+    
+    private static void changeDirectory(String newPath) {
+        File dir = new File(newPath);
+
+        if (dir.exists() && dir.isDirectory()) {
+            currentDirectory = dir.getAbsolutePath(); // Update manually
+        } else {
+            System.out.println("cd: " + newPath + ": No such file or directory");
+        }
+    }
+
 }
