@@ -24,34 +24,12 @@ public class Main {
             }
 
             if (input.startsWith("echo ")) {
-                String content = input.substring(5).trim();
-                List<String> extractedWords = new ArrayList<>();
-
-                Matcher matcher = Pattern.compile("'([^']*)'|\\S+").matcher(content);
-                StringBuilder concatenated = new StringBuilder();
-                boolean lastWasQuoted = false;
-
-                while (matcher.find()) {
-                    String match = matcher.group(1) != null ? matcher.group(1) : matcher.group();
-                    
-                    // Handle adjacent quoted segments correctly
-                    if (lastWasQuoted && matcher.group(1) != null) {
-                        concatenated.append(match); // Merge consecutive quoted words
-                    } else {
-                        if (!concatenated.isEmpty()) {
-                            extractedWords.add(concatenated.toString()); // Add previous merged text
-                            concatenated.setLength(0); // Reset buffer
-                        }
-                        concatenated.append(match);
-                    }
-                    lastWasQuoted = (matcher.group(1) != null);
-                }
-
-                if (!concatenated.isEmpty()) {
-                    extractedWords.add(concatenated.toString()); // Add last word
-                }
-
-                System.out.println(String.join(" ", extractedWords));
+                handleEcho(input.substring(5).trim());
+                continue;
+            }
+            
+            if (input.startsWith("cat ")) {
+                handleCat(input.substring(4).trim());
                 continue;
             }
 
@@ -165,6 +143,61 @@ public class Main {
             currentDirectory = newDirPath.toAbsolutePath().toString();
         } else {
             System.out.println("cd: " + newPath + ": No such file or directory");
+        }
+    }
+    
+    private static void handleEcho(String content) {
+        List<String> extractedWords = new ArrayList<>();
+        Matcher matcher = Pattern.compile("'([^']*)'|\\S+").matcher(content);
+
+        StringBuilder concatenated = new StringBuilder();
+        boolean lastWasQuoted = false;
+
+        while (matcher.find()) {
+            String match = matcher.group(1) != null ? matcher.group(1) : matcher.group();
+
+            if (lastWasQuoted && matcher.group(1) != null) {
+                concatenated.append(match); // Merge consecutive quoted words
+            } else {
+                if (!concatenated.isEmpty()) {
+                    extractedWords.add(concatenated.toString()); // Add merged text
+                    concatenated.setLength(0); // Reset buffer
+                }
+                concatenated.append(match);
+            }
+            lastWasQuoted = (matcher.group(1) != null);
+        }
+
+        if (!concatenated.isEmpty()) {
+            extractedWords.add(concatenated.toString());
+        }
+
+        System.out.println(String.join(" ", extractedWords));
+    }
+
+    private static void handleCat(String content) {
+        List<String> fileNames = new ArrayList<>();
+        Matcher matcher = Pattern.compile("'([^']*)'|\\S+").matcher(content);
+
+        while (matcher.find()) {
+            fileNames.add(matcher.group(1) != null ? matcher.group(1) : matcher.group());
+        }
+
+        if (fileNames.isEmpty()) return;
+
+        ProcessBuilder pb = new ProcessBuilder(fileNames);
+        try {
+            Process process = pb.start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line); // Print file content
+            }
+
+            process.waitFor();
+        } catch (IOException | InterruptedException e) {
+            System.out.println(fileNames.get(0) + ": command not found");
         }
     }
 
