@@ -26,7 +26,7 @@ public class Main {
             if (input.startsWith("echo ")) {
                 String content = input.substring(5).trim();
 
-                // Extract text inside single quotes
+                // Extract text inside single quotes while preserving literal spaces
                 if (content.startsWith("'") && content.endsWith("'")) {
                     content = content.substring(1, content.length() - 1); // Remove surrounding quotes
                 }
