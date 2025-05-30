@@ -22,7 +22,14 @@ public class Main {
             }
 
             if (input.startsWith("echo ")) {
-                System.out.println(input.substring(5));
+                String content = input.substring(5).trim();
+
+                // Extract text inside single quotes
+                if (content.startsWith("'") && content.endsWith("'")) {
+                    content = content.substring(1, content.length() - 1); // Remove surrounding quotes
+                }
+
+                System.out.println(content);
                 continue;
             }
 
@@ -86,9 +93,17 @@ public class Main {
     }
 
     private static void executeExternalProgram(String input) {
-        String[] parts = input.split("\\s+");
-        ProcessBuilder pb = new ProcessBuilder(parts); // Correct initialization
+        List<String> args = new ArrayList<>();
+        Matcher matcher = Pattern.compile("'(.*?)'|\\S+").matcher(input);
 
+        while (matcher.find()) {
+            args.add(matcher.group().replaceAll("^'|'$", "")); // Remove quotes only from quoted arguments
+        }
+
+        if (args.isEmpty()) return;
+
+        ProcessBuilder pb = new ProcessBuilder(args);
+        
         try {
             Process process = pb.start();
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -98,9 +113,9 @@ public class Main {
                 System.out.println(line); // Print output from external program
             }
 
-            process.waitFor(); // Ensure program execution completes before proceeding
+            process.waitFor();
         } catch (IOException | InterruptedException e) {
-            System.out.println(parts[0] + ": command not found");
+            System.out.println(args.get(0) + ": command not found");
         }
     }
 
