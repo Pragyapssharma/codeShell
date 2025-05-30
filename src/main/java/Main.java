@@ -103,7 +103,7 @@ public class Main {
             if (escapeNext) {
                 currentArg.append(c);
                 escapeNext = false;
-            } else if (c == '\\' && !inSingleQuote) {
+            } else if (c == '\\' && !inSingleQuote && !inDoubleQuote) {
                 escapeNext = true;
             } else if (c == '\'' && !inDoubleQuote) {
                 inSingleQuote = !inSingleQuote;
@@ -124,6 +124,11 @@ public class Main {
         }
 
         if (args.isEmpty()) return;
+
+        if (args.get(0).equals("cat")) {
+            handleCat(String.join(" ", args.subList(1, args.size())));
+            return;
+        }
 
         ProcessBuilder pb = new ProcessBuilder(args);
         
@@ -208,7 +213,7 @@ public class Main {
             if (escapeNext) {
                 currentFileName.append(c);
                 escapeNext = false;
-            } else if (c == '\\' && !inSingleQuote) {
+            } else if (c == '\\' && !inSingleQuote && !inDoubleQuote) {
                 escapeNext = true;
             } else if (c == '\'' && !inDoubleQuote) {
                 inSingleQuote = !inSingleQuote;
