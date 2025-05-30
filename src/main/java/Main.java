@@ -105,12 +105,13 @@ public class Main {
     }
 
     private static void changeDirectory(String newPath) {
-        Path newDirPath = Paths.get(currentDirectory, newPath).normalize(); // Normalize relative paths
-        File newDir = newDirPath.toFile(); // Convert Path to File
+        Path newDirPath = Paths.get(currentDirectory, newPath).normalize();
+        File newDir = newDirPath.toFile();
 
         if (newDir.exists() && newDir.isDirectory()) {
-            currentDirectory = newDirPath.toAbsolutePath().toString(); // Update manually
+            currentDirectory = newDirPath.toAbsolutePath().toString();
         } else {
+            System.out.print("$ ");
             System.out.println("cd: " + newPath + ": No such file or directory");
         }
     }
