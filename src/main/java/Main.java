@@ -149,7 +149,7 @@ public class Main {
     private static void handleEcho(String content) {
         List<String> extractedWords = new ArrayList<>();
         Matcher matcher = Pattern.compile("'([^']*)'|\\S+").matcher(content);
-        
+
         StringBuilder concatenated = new StringBuilder();
         boolean lastWasQuoted = false;
 
