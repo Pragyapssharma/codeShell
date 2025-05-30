@@ -157,10 +157,10 @@ public class Main {
             String match = matcher.group(1) != null ? matcher.group(1) : matcher.group();
 
             if (lastWasQuoted && matcher.group(1) != null) {
-                concatenated.append(match); // Merge adjacent quoted words without spaces
+                concatenated.append(match); // Merge consecutive quoted words without spaces
             } else {
                 if (!concatenated.isEmpty()) {
-                    extractedWords.add(concatenated.toString()); // Add merged text
+                    extractedWords.add(concatenated.toString()); // Add previous merged text
                     concatenated.setLength(0); // Reset buffer
                 }
                 concatenated.append(match);
