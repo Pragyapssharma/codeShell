@@ -107,18 +107,25 @@ public class Main {
     private static void changeDirectory(String newPath) {
         Path newDirPath;
 
-        // Handle absolute paths
-        if (newPath.startsWith("/")) {
-            newDirPath = Paths.get(newPath);
+        // Handle the '~' character as the home directory
+        if (newPath.equals("~")) {
+            String homeDir = System.getenv("HOME");
+            if (homeDir != null) {
+                newDirPath = Paths.get(homeDir);
+            } else {
+                System.out.println("cd: HOME environment variable is not set");
+                return;
+            }
+        } else if (newPath.startsWith("/")) {
+            newDirPath = Paths.get(newPath); // Absolute path
         } else {
-            // Resolve relative paths correctly
-            newDirPath = Paths.get(currentDirectory, newPath).normalize();
+            newDirPath = Paths.get(currentDirectory, newPath).normalize(); // Relative path
         }
 
         File newDir = newDirPath.toFile();
 
         if (newDir.exists() && newDir.isDirectory()) {
-            currentDirectory = newDirPath.toAbsolutePath().toString(); // Update manually
+            currentDirectory = newDirPath.toAbsolutePath().toString();
         } else {
             System.out.println("cd: " + newPath + ": No such file or directory");
         }
