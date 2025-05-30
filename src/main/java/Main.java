@@ -32,7 +32,7 @@ public class Main {
             }
 
             if ("pwd".equalsIgnoreCase(input)) {
-                System.out.println("/home/user");
+                System.out.println("user.dir");
                 continue;
             }
 
