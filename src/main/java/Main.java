@@ -94,10 +94,27 @@ public class Main {
 
     private static void executeExternalProgram(String input) {
         List<String> args = new ArrayList<>();
-        Matcher matcher = Pattern.compile("'(.*?)'|\\S+").matcher(input);
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        StringBuilder currentArg = new StringBuilder();
 
-        while (matcher.find()) {
-            args.add(matcher.group().replaceAll("^'|'$", "")); // Remove quotes only from quoted arguments
+        for (char c : input.toCharArray()) {
+            if (c == '\'' && !inDoubleQuote) {
+                inSingleQuote = !inSingleQuote;
+            } else if (c == '"' && !inSingleQuote) {
+                inDoubleQuote = !inDoubleQuote;
+            } else if (Character.isWhitespace(c) && !inSingleQuote && !inDoubleQuote) {
+                if (currentArg.length() > 0) {
+                    args.add(currentArg.toString());
+                    currentArg.setLength(0);
+                }
+            } else {
+                currentArg.append(c);
+            }
+        }
+
+        if (currentArg.length() > 0) {
+            args.add(currentArg.toString());
         }
 
         if (args.isEmpty()) return;
@@ -147,46 +164,50 @@ public class Main {
     }
     
     private static void handleEcho(String content) {
-        List<String> extractedWords = new ArrayList<>();
-        Matcher matcher = Pattern.compile("\"([^\"]*)\"|'([^']*)'|\\S+").matcher(content);
+        StringBuilder result = new StringBuilder();
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
 
-        StringBuilder concatenated = new StringBuilder();
-        boolean lastWasQuoted = false;
-
-        while (matcher.find()) {
-            String match = matcher.group(1) != null ? matcher.group(1) :
-                           matcher.group(2) != null ? matcher.group(2) : matcher.group();
-
-            // Merge adjacent quoted words, but add space when transitioning from a non-quoted word
-            if (lastWasQuoted && (matcher.group(1) != null || matcher.group(2) != null)) {
-                concatenated.append(match); // No space between adjacent quoted segments
+        for (char c : content.toCharArray()) {
+            if (c == '\'' && !inDoubleQuote) {
+                inSingleQuote = !inSingleQuote;
+            } else if (c == '"' && !inSingleQuote) {
+                inDoubleQuote = !inDoubleQuote;
+            } else if (Character.isWhitespace(c) && !inSingleQuote && !inDoubleQuote) {
+                if (result.length() > 0 && !Character.isWhitespace(result.charAt(result.length() - 1))) {
+                    result.append(' ');
+                }
             } else {
-                if (!concatenated.isEmpty()) {
-                    extractedWords.add(concatenated.toString());
-                    concatenated.setLength(0); // Reset buffer
-                }
-                if (lastWasQuoted) {
-                    concatenated.append(" "); // Add space between quoted sections
-                }
-                concatenated.append(match);
+                result.append(c);
             }
-            lastWasQuoted = (matcher.group(1) != null || matcher.group(2) != null);
         }
 
-        if (!concatenated.isEmpty()) {
-            extractedWords.add(concatenated.toString());
-        }
-
-        System.out.println(String.join(" ", extractedWords));
+        System.out.println(result.toString());
     }
 
     private static void handleCat(String content) {
         List<String> fileNames = new ArrayList<>();
-        Matcher matcher = Pattern.compile("\"([^\"]*)\"|'([^']*)'|\\S+").matcher(content);
+        StringBuilder currentFileName = new StringBuilder();
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
 
-        while (matcher.find()) {
-            fileNames.add(matcher.group(1) != null ? matcher.group(1) : 
-                          matcher.group(2) != null ? matcher.group(2) : matcher.group());
+        for (char c : content.toCharArray()) {
+            if (c == '\'' && !inDoubleQuote) {
+                inSingleQuote = !inSingleQuote;
+            } else if (c == '"' && !inSingleQuote) {
+                inDoubleQuote = !inDoubleQuote;
+            } else if (Character.isWhitespace(c) && !inSingleQuote && !inDoubleQuote) {
+                if (currentFileName.length() > 0) {
+                    fileNames.add(currentFileName.toString());
+                    currentFileName.setLength(0);
+                }
+            } else {
+                currentFileName.append(c);
+            }
+        }
+
+        if (currentFileName.length() > 0) {
+            fileNames.add(currentFileName.toString());
         }
 
         if (fileNames.isEmpty()) return;
