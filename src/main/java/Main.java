@@ -88,7 +88,7 @@ public class Main {
 
             process.waitFor(); // Ensure program execution completes before proceeding
         } catch (IOException | InterruptedException e) {
-            System.out.println(command + ": failed to execute");
+            System.out.println(command + ": command not found");
         }
     }
 }
