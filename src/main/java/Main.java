@@ -156,11 +156,12 @@ public class Main {
         while (matcher.find()) {
             String match = matcher.group(1) != null ? matcher.group(1) : matcher.group();
 
+            // Merge adjacent quoted words, but add space when transitioning from a non-quoted word
             if (lastWasQuoted && matcher.group(1) != null) {
-                concatenated.append(match); // Merge consecutive quoted words without spaces
+                concatenated.append(match);
             } else {
                 if (!concatenated.isEmpty()) {
-                    extractedWords.add(concatenated.toString()); // Add previous merged text
+                    extractedWords.add(concatenated.toString());
                     concatenated.setLength(0); // Reset buffer
                 }
                 concatenated.append(match);
