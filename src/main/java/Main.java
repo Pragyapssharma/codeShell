@@ -43,7 +43,7 @@ public class Main {
             }
 
             if ("pwd".equalsIgnoreCase(input)) {
-            	System.out.println(Paths.get(currentDirectory).toAbsolutePath()); // Use manually tracked directory
+            	System.out.println(currentDirectory); // Use manually tracked directory
                 continue;
             }
 
@@ -105,13 +105,12 @@ public class Main {
     }
 
     private static void changeDirectory(String newPath) {
-        Path newDirPath = Paths.get(currentDirectory, newPath).normalize();
-        File newDir = newDirPath.toFile();
+        Path newDirPath = Paths.get(currentDirectory, newPath).normalize(); // Normalize relative paths
+        File newDir = newDirPath.toFile(); // Convert Path to File
 
         if (newDir.exists() && newDir.isDirectory()) {
-            currentDirectory = newDirPath.toAbsolutePath().toString();
+            currentDirectory = newDirPath.toAbsolutePath().toString(); // Update manually
         } else {
-            System.out.print("$ ");
             System.out.println("cd: " + newPath + ": No such file or directory");
         }
     }
