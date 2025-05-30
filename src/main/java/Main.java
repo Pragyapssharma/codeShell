@@ -111,6 +111,7 @@ public class Main {
         if (newDir.exists() && newDir.isDirectory()) {
             currentDirectory = newDirPath.toAbsolutePath().toString(); // Update manually
         } else {
+        	System.out.print("$ ");
             System.out.println("cd: " + newPath + ": No such file or directory");
         }
     }
