@@ -25,16 +25,15 @@ public class Main {
 
             if (input.startsWith("echo ")) {
                 String content = input.substring(5).trim();
+                List<String> extractedWords = new ArrayList<>();
                 
-                // Handle single quotes correctly
-                if (content.startsWith("'") && content.endsWith("'")) {
-                    content = content.substring(1, content.length() - 1); // Remove surrounding quotes
-                } else {
-                    // Collapse multiple spaces outside quotes
-                    content = content.replaceAll("\\s+", " ");
+                Matcher matcher = Pattern.compile("'([^']*)'|\\S+").matcher(content);
+                
+                while (matcher.find()) {
+                    extractedWords.add(matcher.group(1) != null ? matcher.group(1) : matcher.group());
                 }
-
-                System.out.println(content);
+                
+                System.out.println(String.join(" ", extractedWords));
                 continue;
             }
 
