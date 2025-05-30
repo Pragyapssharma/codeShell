@@ -147,33 +147,43 @@ public class Main {
     }
     
     private static void handleEcho(String content) {
-        StringBuilder result = new StringBuilder();
-        boolean inQuote = false;
-        boolean prevWasQuote = false;
+        List<String> extractedWords = new ArrayList<>();
+        Matcher matcher = Pattern.compile("\"([^\"]*)\"|'([^']*)'|\\S+").matcher(content);
 
-        for (char c : content.toCharArray()) {
-            if (c == '\'') {
-                inQuote = !inQuote;
-                prevWasQuote = true;
-            } else if (Character.isWhitespace(c) && !inQuote) {
-                if (result.length() > 0 && !Character.isWhitespace(result.charAt(result.length() - 1))) {
-                    result.append(' ');
-                }
+        StringBuilder concatenated = new StringBuilder();
+        boolean lastWasQuoted = false;
+
+        while (matcher.find()) {
+            String match = matcher.group(1) != null ? matcher.group(1) : 
+                           matcher.group(2) != null ? matcher.group(2) : matcher.group();
+
+            // Handle adjacent quoted segments correctly
+            if (lastWasQuoted && (matcher.group(1) != null || matcher.group(2) != null)) {
+                concatenated.append(match);
             } else {
-                result.append(c);
-                prevWasQuote = false;
+                if (!concatenated.isEmpty()) {
+                    extractedWords.add(concatenated.toString()); // Add previous merged text
+                    concatenated.setLength(0); // Reset buffer
+                }
+                concatenated.append(match);
             }
+            lastWasQuoted = (matcher.group(1) != null || matcher.group(2) != null);
         }
 
-        System.out.println(result.toString());
+        if (!concatenated.isEmpty()) {
+            extractedWords.add(concatenated.toString());
+        }
+
+        System.out.println(String.join(" ", extractedWords));
     }
 
     private static void handleCat(String content) {
         List<String> fileNames = new ArrayList<>();
-        Matcher matcher = Pattern.compile("'([^']*)'|\\S+").matcher(content);
+        Matcher matcher = Pattern.compile("\"([^\"]*)\"|'([^']*)'|\\S+").matcher(content);
 
         while (matcher.find()) {
-            fileNames.add(matcher.group(1) != null ? matcher.group(1) : matcher.group());
+            fileNames.add(matcher.group(1) != null ? matcher.group(1) : 
+                          matcher.group(2) != null ? matcher.group(2) : matcher.group());
         }
 
         if (fileNames.isEmpty()) return;
