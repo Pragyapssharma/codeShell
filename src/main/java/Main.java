@@ -28,24 +28,23 @@ public class Main {
                 List<String> extractedWords = new ArrayList<>();
 
                 Matcher matcher = Pattern.compile("'([^']*)'|\\S+").matcher(content);
-
                 StringBuilder concatenated = new StringBuilder();
-                
+
                 while (matcher.find()) {
                     String match = matcher.group(1) != null ? matcher.group(1) : matcher.group();
                     
-                    // If previous word was quoted, merge it
+                    // Merge consecutive quoted words properly
                     if (!concatenated.isEmpty() && matcher.group(1) != null) {
-                        concatenated.append(match); // Merge consecutive quoted words
+                        concatenated.append(match); // Append adjacent quoted segments
                     } else {
                         if (!concatenated.isEmpty()) {
-                            extractedWords.add(concatenated.toString()); // Add previous concatenated text
-                            concatenated.setLength(0); // Reset
+                            extractedWords.add(concatenated.toString()); // Add merged text
+                            concatenated.setLength(0); // Reset buffer
                         }
                         concatenated.append(match);
                     }
                 }
-                
+
                 if (!concatenated.isEmpty()) {
                     extractedWords.add(concatenated.toString()); // Add last word
                 }
