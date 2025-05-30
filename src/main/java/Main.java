@@ -165,7 +165,8 @@ public class Main {
                     concatenated.setLength(0); // Reset buffer
                 }
                 if (lastWasQuoted) {
-                    concatenated.append(" "); // Add space between quoted sections
+                    extractedWords.add(concatenated.toString()); // Ensure space separation
+                    concatenated.setLength(0);
                 }
                 concatenated.append(match);
             }
