@@ -147,15 +147,25 @@ public class Main {
     }
     
     private static void handleEcho(String content) {
-        List<String> extractedWords = new ArrayList<>();
-        Matcher matcher = Pattern.compile("'([^']*)'|\\S+").matcher(content);
+        StringBuilder result = new StringBuilder();
+        boolean inQuote = false;
+        boolean prevWasQuote = false;
 
-        while (matcher.find()) {
-            String match = matcher.group(1) != null ? matcher.group(1) : matcher.group();
-            extractedWords.add(match);
+        for (char c : content.toCharArray()) {
+            if (c == '\'') {
+                inQuote = !inQuote;
+                prevWasQuote = true;
+            } else if (Character.isWhitespace(c) && !inQuote) {
+                if (result.length() > 0 && !Character.isWhitespace(result.charAt(result.length() - 1))) {
+                    result.append(' ');
+                }
+            } else {
+                result.append(c);
+                prevWasQuote = false;
+            }
         }
 
-        System.out.println(String.join(" ", extractedWords));
+        System.out.println(result.toString());
     }
 
     private static void handleCat(String content) {
