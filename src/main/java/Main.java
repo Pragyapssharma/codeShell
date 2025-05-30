@@ -154,16 +154,19 @@ public class Main {
         boolean lastWasQuoted = false;
 
         while (matcher.find()) {
-            String match = matcher.group(1) != null ? matcher.group(1) : 
+            String match = matcher.group(1) != null ? matcher.group(1) :
                            matcher.group(2) != null ? matcher.group(2) : matcher.group();
 
-            // Handle adjacent quoted segments correctly
+            // Merge adjacent quoted words, but add space when transitioning from a non-quoted word
             if (lastWasQuoted && (matcher.group(1) != null || matcher.group(2) != null)) {
-                concatenated.append(match);
+                concatenated.append(match); // No space between adjacent quoted segments
             } else {
                 if (!concatenated.isEmpty()) {
-                    extractedWords.add(concatenated.toString()); // Add previous merged text
+                    extractedWords.add(concatenated.toString());
                     concatenated.setLength(0); // Reset buffer
+                }
+                if (lastWasQuoted) {
+                    concatenated.append(" "); // Add space between quoted sections
                 }
                 concatenated.append(match);
             }
