@@ -29,20 +29,22 @@ public class Main {
 
                 Matcher matcher = Pattern.compile("'([^']*)'|\\S+").matcher(content);
                 StringBuilder concatenated = new StringBuilder();
+                boolean lastWasQuoted = false;
 
                 while (matcher.find()) {
                     String match = matcher.group(1) != null ? matcher.group(1) : matcher.group();
                     
-                    // Handle consecutive quoted words properly
-                    if (!concatenated.isEmpty() && matcher.group(1) != null) {
-                        concatenated.append(match); // Merge adjacent quoted segments
+                    // Handle adjacent quoted segments correctly
+                    if (lastWasQuoted && matcher.group(1) != null) {
+                        concatenated.append(match); // Merge consecutive quoted words
                     } else {
                         if (!concatenated.isEmpty()) {
-                            extractedWords.add(concatenated.toString()); // Add merged text
+                            extractedWords.add(concatenated.toString()); // Add previous merged text
                             concatenated.setLength(0); // Reset buffer
                         }
                         concatenated.append(match);
                     }
+                    lastWasQuoted = (matcher.group(1) != null);
                 }
 
                 if (!concatenated.isEmpty()) {
