@@ -94,12 +94,18 @@ public class Main {
 
     private static void executeExternalProgram(String input) {
         List<String> args = new ArrayList<>();
+        StringBuilder currentArg = new StringBuilder();
         boolean inSingleQuote = false;
         boolean inDoubleQuote = false;
-        StringBuilder currentArg = new StringBuilder();
+        boolean escapeNext = false;
 
         for (char c : input.toCharArray()) {
-            if (c == '\'' && !inDoubleQuote) {
+            if (escapeNext) {
+                currentArg.append(c);
+                escapeNext = false;
+            } else if (c == '\\' && !inSingleQuote) {
+                escapeNext = true;
+            } else if (c == '\'' && !inDoubleQuote) {
                 inSingleQuote = !inSingleQuote;
             } else if (c == '"' && !inSingleQuote) {
                 inDoubleQuote = !inDoubleQuote;
@@ -167,9 +173,15 @@ public class Main {
         StringBuilder result = new StringBuilder();
         boolean inSingleQuote = false;
         boolean inDoubleQuote = false;
+        boolean escapeNext = false;
 
         for (char c : content.toCharArray()) {
-            if (c == '\'' && !inDoubleQuote) {
+            if (escapeNext) {
+                result.append(c);
+                escapeNext = false;
+            } else if (c == '\\' && !inSingleQuote) {
+                escapeNext = true;
+            } else if (c == '\'' && !inDoubleQuote) {
                 inSingleQuote = !inSingleQuote;
             } else if (c == '"' && !inSingleQuote) {
                 inDoubleQuote = !inDoubleQuote;
@@ -190,9 +202,15 @@ public class Main {
         StringBuilder currentFileName = new StringBuilder();
         boolean inSingleQuote = false;
         boolean inDoubleQuote = false;
+        boolean escapeNext = false;
 
         for (char c : content.toCharArray()) {
-            if (c == '\'' && !inDoubleQuote) {
+            if (escapeNext) {
+                currentFileName.append(c);
+                escapeNext = false;
+            } else if (c == '\\' && !inSingleQuote) {
+                escapeNext = true;
+            } else if (c == '\'' && !inDoubleQuote) {
                 inSingleQuote = !inSingleQuote;
             } else if (c == '"' && !inSingleQuote) {
                 inDoubleQuote = !inDoubleQuote;
