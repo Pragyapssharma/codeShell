@@ -25,10 +25,13 @@ public class Main {
 
             if (input.startsWith("echo ")) {
                 String content = input.substring(5).trim();
-
-                // Extract text inside single quotes while preserving literal spaces
+                
+                // Handle single quotes correctly
                 if (content.startsWith("'") && content.endsWith("'")) {
                     content = content.substring(1, content.length() - 1); // Remove surrounding quotes
+                } else {
+                    // Collapse multiple spaces outside quotes
+                    content = content.replaceAll("\\s+", " ");
                 }
 
                 System.out.println(content);
