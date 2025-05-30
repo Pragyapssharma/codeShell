@@ -33,9 +33,9 @@ public class Main {
                 while (matcher.find()) {
                     String match = matcher.group(1) != null ? matcher.group(1) : matcher.group();
                     
-                    // Merge consecutive quoted words properly
+                    // Handle consecutive quoted words properly
                     if (!concatenated.isEmpty() && matcher.group(1) != null) {
-                        concatenated.append(match); // Append adjacent quoted segments
+                        concatenated.append(match); // Merge adjacent quoted segments
                     } else {
                         if (!concatenated.isEmpty()) {
                             extractedWords.add(concatenated.toString()); // Add merged text
