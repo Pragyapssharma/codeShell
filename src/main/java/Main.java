@@ -93,57 +93,92 @@ public class Main {
     }
 
     private static void executeExternalProgram(String input) {
-        List<String> args = new ArrayList<>();
-        StringBuilder currentArg = new StringBuilder();
-        boolean inSingleQuote = false;
-        boolean inDoubleQuote = false;
-        boolean escapeNext = false;
+        String[] parts = input.split("\\s+>");
+        if (parts.length > 1) {
+            String command = parts[0].trim();
+            String outputFile = parts[1].trim();
 
-        for (char c : input.toCharArray()) {
-            if (escapeNext) {
-                currentArg.append(c);
-                escapeNext = false;
-            } else if (c == '\\' && !inSingleQuote && !inDoubleQuote) {
-                escapeNext = true;
-            } else if (c == '\'' && !inDoubleQuote) {
-                inSingleQuote = !inSingleQuote;
-            } else if (c == '"' && !inSingleQuote) {
-                inDoubleQuote = !inDoubleQuote;
-            } else if (Character.isWhitespace(c) && !inSingleQuote && !inDoubleQuote) {
-                if (currentArg.length() > 0) {
-                    args.add(currentArg.toString());
-                    currentArg.setLength(0);
+            try {
+                Process process = Runtime.getRuntime().exec(command);
+                FileOutputStream fos = new FileOutputStream(outputFile);
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = process.getInputStream().read(buffer)) != -1) {
+                    fos.write(buffer, 0, bytesRead);
                 }
-            } else {
-                currentArg.append(c);
+                fos.close();
+                process.waitFor();
+            } catch (IOException | InterruptedException e) {
+                System.out.println("Error executing command");
             }
-        }
+        } else if (input.contains("1>")) {
+            String[] commandParts = input.split("\\s+1>");
+            String command = commandParts[0].trim();
+            String outputFile = commandParts[1].trim();
 
-        if (currentArg.length() > 0) {
-            args.add(currentArg.toString());
-        }
+            try {
+                Process process = Runtime.getRuntime().exec(command);
+                FileOutputStream fos = new FileOutputStream(outputFile);
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = process.getInputStream().read(buffer)) != -1) {
+                    fos.write(buffer, 0, bytesRead);
+                }
+                fos.close();
+                process.waitFor();
+            } catch (IOException | InterruptedException e) {
+                System.out.println("Error executing command");
+            }
+        } else {
+            List<String> args = new ArrayList<>();
+            boolean inSingleQuote = false;
+            boolean inDoubleQuote = false;
+            boolean escapeNext = false;
+            StringBuilder currentArg = new StringBuilder();
 
-        if (args.isEmpty()) return;
-
-        if (args.get(0).equals("cat")) {
-            handleCat(String.join(" ", args.subList(1, args.size())));
-            return;
-        }
-
-        ProcessBuilder pb = new ProcessBuilder(args);
-        
-        try {
-            Process process = pb.start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line); // Print output from external program
+            for (char c : input.toCharArray()) {
+                if (escapeNext) {
+                    currentArg.append(c);
+                    escapeNext = false;
+                } else if (c == '\\' && !inSingleQuote && !inDoubleQuote) {
+                    escapeNext = true;
+                } else if (c == '\\' && inDoubleQuote) {
+                    escapeNext = true;
+                } else if (c == '\'' && !inDoubleQuote) {
+                    inSingleQuote = !inSingleQuote;
+                } else if (c == '"' && !inSingleQuote) {
+                    inDoubleQuote = !inDoubleQuote;
+                } else if (Character.isWhitespace(c) && !inSingleQuote && !inDoubleQuote) {
+                    if (currentArg.length() > 0) {
+                        args.add(currentArg.toString());
+                        currentArg.setLength(0);
+                    }
+                } else {
+                    currentArg.append(c);
+                }
             }
 
-            process.waitFor();
-        } catch (IOException | InterruptedException e) {
-            System.out.println(args.get(0) + ": command not found");
+            if (currentArg.length() > 0) {
+                args.add(currentArg.toString());
+            }
+
+            if (args.isEmpty()) return;
+
+            ProcessBuilder pb = new ProcessBuilder(args);
+            
+            try {
+                Process process = pb.start();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line); // Print output from external program
+                }
+
+                process.waitFor();
+            } catch (IOException | InterruptedException e) {
+                System.out.println(args.get(0) + ": command not found");
+            }
         }
     }
 
