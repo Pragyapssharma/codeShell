@@ -164,6 +164,9 @@ public class Main {
                     extractedWords.add(concatenated.toString());
                     concatenated.setLength(0); // Reset buffer
                 }
+                if (lastWasQuoted) {
+                    concatenated.append(" "); // Add space between quoted sections
+                }
                 concatenated.append(match);
             }
             lastWasQuoted = (matcher.group(1) != null);
