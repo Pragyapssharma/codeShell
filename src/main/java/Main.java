@@ -26,13 +26,30 @@ public class Main {
             if (input.startsWith("echo ")) {
                 String content = input.substring(5).trim();
                 List<String> extractedWords = new ArrayList<>();
-                
+
                 Matcher matcher = Pattern.compile("'([^']*)'|\\S+").matcher(content);
+
+                StringBuilder concatenated = new StringBuilder();
                 
                 while (matcher.find()) {
-                    extractedWords.add(matcher.group(1) != null ? matcher.group(1) : matcher.group());
+                    String match = matcher.group(1) != null ? matcher.group(1) : matcher.group();
+                    
+                    // If previous word was quoted, merge it
+                    if (!concatenated.isEmpty() && matcher.group(1) != null) {
+                        concatenated.append(match); // Merge consecutive quoted words
+                    } else {
+                        if (!concatenated.isEmpty()) {
+                            extractedWords.add(concatenated.toString()); // Add previous concatenated text
+                            concatenated.setLength(0); // Reset
+                        }
+                        concatenated.append(match);
+                    }
                 }
                 
+                if (!concatenated.isEmpty()) {
+                    extractedWords.add(concatenated.toString()); // Add last word
+                }
+
                 System.out.println(String.join(" ", extractedWords));
                 continue;
             }
