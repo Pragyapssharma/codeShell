@@ -178,7 +178,9 @@ public class Main {
 
         if (fileNames.isEmpty()) return;
 
-        ProcessBuilder pb = new ProcessBuilder(fileNames);
+        ProcessBuilder pb = new ProcessBuilder("cat");
+        pb.command().addAll(fileNames);
+
         try {
             Process process = pb.start();
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -190,7 +192,7 @@ public class Main {
 
             process.waitFor();
         } catch (IOException | InterruptedException e) {
-            System.out.println(fileNames.get(0) + ": command not found");
+            System.out.println("Error reading files");
         }
     }
 
