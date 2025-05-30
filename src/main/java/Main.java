@@ -70,13 +70,20 @@ public class Main {
                 continue;
             }
 
+            // Handle external program
             if (input.contains(">")) {
                 executeExternalProgram(input);
             } else if (input.contains("1>")) {
                 executeExternalProgram(input);
-            } else {
-                // Handle built-in commands
+            } else if (input.startsWith("echo ")) {
+                handleEcho(input.substring(5).trim());
+            } else if (input.startsWith("cat ")) {
+                handleCat(input.substring(4).trim());
+            } else if (input.startsWith("type ")) {
                 // ...
+            } else if (input.startsWith("cd ")) {
+                // ...
+            } else {
                 executeExternalProgram(input);
             }
             
@@ -101,46 +108,81 @@ public class Main {
     }
 
     private static void executeExternalProgram(String input) {
+        String command = input;
+        String outputFile = null;
+
         if (input.contains(">")) {
             String[] parts = input.split(">");
-            String command = parts[0].trim();
-            String outputFile = parts[1].trim();
-
-            try {
-                Process process = Runtime.getRuntime().exec(command);
-                FileOutputStream fos = new FileOutputStream(outputFile);
-                byte[] buffer = new byte[1024];
-                int bytesRead;
-                while ((bytesRead = process.getInputStream().read(buffer)) != -1) {
-                    fos.write(buffer, 0, bytesRead);
-                }
-                fos.close();
-                process.waitFor();
-            } catch (IOException | InterruptedException e) {
-                System.out.println("Error executing command");
-            }
+            command = parts[0].trim();
+            outputFile = parts[1].trim();
         } else if (input.contains("1>")) {
             String[] parts = input.split("1>");
-            String command = parts[0].trim();
-            String outputFile = parts[1].trim();
+            command = parts[0].trim();
+            outputFile = parts[1].trim();
+        }
 
+        if (command.startsWith("echo ")) {
+            String echoOutput = getEchoOutput(command.substring(5).trim());
+            if (outputFile != null) {
+                try (FileWriter writer = new FileWriter(outputFile)) {
+                    writer.write(echoOutput);
+                } catch (IOException e) {
+                    System.out.println("Error writing to file");
+                }
+            } else {
+                System.out.println(echoOutput);
+            }
+        } else {
             try {
                 Process process = Runtime.getRuntime().exec(command);
-                FileOutputStream fos = new FileOutputStream(outputFile);
-                byte[] buffer = new byte[1024];
-                int bytesRead;
-                while ((bytesRead = process.getInputStream().read(buffer)) != -1) {
-                    fos.write(buffer, 0, bytesRead);
+                if (outputFile != null) {
+                    FileOutputStream fos = new FileOutputStream(outputFile);
+                    byte[] buffer = new byte[1024];
+                    int bytesRead;
+                    while ((bytesRead = process.getInputStream().read(buffer)) != -1) {
+                        fos.write(buffer, 0, bytesRead);
+                    }
+                    fos.close();
+                } else {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        System.out.println(line);
+                    }
                 }
-                fos.close();
                 process.waitFor();
             } catch (IOException | InterruptedException e) {
                 System.out.println("Error executing command");
             }
-        } else {
-            // Handle commands without redirection
-            
         }
+    }
+
+    private static String getEchoOutput(String content) {
+        StringBuilder result = new StringBuilder();
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        boolean escapeNext = false;
+
+        for (char c : content.toCharArray()) {
+            if (escapeNext) {
+                result.append(c);
+                escapeNext = false;
+            } else if (c == '\\' && !inSingleQuote) {
+                escapeNext = true;
+            } else if (c == '\'' && !inDoubleQuote) {
+                inSingleQuote = !inSingleQuote;
+            } else if (c == '"' && !inSingleQuote) {
+                inDoubleQuote = !inDoubleQuote;
+            } else if (Character.isWhitespace(c) && !inSingleQuote && !inDoubleQuote) {
+                if (result.length() > 0 && !Character.isWhitespace(result.charAt(result.length() - 1))) {
+                    result.append(' ');
+                }
+            } else {
+                result.append(c);
+            }
+        }
+
+        return result.toString();
     }
 
     private static void changeDirectory(String newPath) {
