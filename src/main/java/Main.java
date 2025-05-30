@@ -3,18 +3,19 @@ import java.io.*;
 import java.nio.file.*;
 
 public class Main {
+	
+	private static String currentDirectory = System.getProperty("user.dir"); // Track manually
+	
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         
         Set<String> builtins = new HashSet<>(Arrays.asList("echo", "exit", "type", "pwd", "ls", "help"));
         
-        private static String currentDirectory = System.getProperty("user.dir"); // Track manually
-
 
         while (true) {
             System.out.print("$ "); // Shell prompt
             String input = scanner.nextLine().trim();
-
+            
             if ("exit 0".equalsIgnoreCase(input)) {
                 scanner.close();
                 System.exit(0);
@@ -42,7 +43,7 @@ public class Main {
             }
 
             if ("pwd".equalsIgnoreCase(input)) {
-                System.out.println(currentDirectory); // Use manually tracked directory
+            	System.out.println(Paths.get(currentDirectory).toAbsolutePath()); // Use manually tracked directory
                 continue;
             }
 
@@ -86,12 +87,7 @@ public class Main {
 
     private static void executeExternalProgram(String input) {
         String[] parts = input.split("\\s+");
-        String command = parts[0];
-        String[] args = Arrays.copyOfRange(parts, 1, parts.length);
-
-        ProcessBuilder pb = new ProcessBuilder();
-        pb.command(command);
-        pb.command().addAll(Arrays.asList(args));
+        ProcessBuilder pb = new ProcessBuilder(parts); // Correct initialization
 
         try {
             Process process = pb.start();
@@ -104,10 +100,10 @@ public class Main {
 
             process.waitFor(); // Ensure program execution completes before proceeding
         } catch (IOException | InterruptedException e) {
-            System.out.println(command + ": command not found");
+            System.out.println(parts[0] + ": command not found");
         }
     }
-    
+
     private static void changeDirectory(String newPath) {
         File dir = new File(newPath);
 
