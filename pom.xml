@@ -9,10 +9,10 @@
 	<version>1.0</version>
 
 	<properties>
-		<maven.compiler.source>23</maven.compiler.source>
-		<maven.compiler.target>23</maven.compiler.target>
+		<maven.compiler.source>22</maven.compiler.source>
+		<maven.compiler.target>22</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<java.version>23</java.version>
+		<java.version>22</java.version>
 	</properties>
 
 	<build>
@@ -53,9 +53,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.13.0</version>
 				<configuration>
-					<compilerArgs>
-						--enable-preview
-					</compilerArgs>
+    					<source>22</source>
+    					<target>22</target>
 				</configuration>
 			</plugin>
 		</plugins>

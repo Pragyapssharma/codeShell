@@ -71,18 +71,22 @@ public class Main {
             }
 
             // Handle external program
-            if (input.contains(">")) {
-                executeExternalProgram(input);
-            } else if (input.contains("1>")) {
-                executeExternalProgram(input);
+            if (input.contains(">") || input.contains("1>")) {
+                executeCommandWithRedirection(input);
             } else if (input.startsWith("echo ")) {
                 handleEcho(input.substring(5).trim());
             } else if (input.startsWith("cat ")) {
                 handleCat(input.substring(4).trim());
             } else if (input.startsWith("type ")) {
-                // ...
+                String command = input.substring(5).trim();
+                if (builtins.contains(command)) {
+                    System.out.println(command + " is a shell builtin");
+                } else {
+                    findExecutable(command);
+                }
             } else if (input.startsWith("cd ")) {
-                // ...
+                String path = input.substring(3).trim();
+                changeDirectory(path);
             } else {
                 executeExternalProgram(input);
             }
@@ -154,6 +158,67 @@ public class Main {
             } catch (IOException | InterruptedException e) {
                 System.out.println("Error executing command");
             }
+        }
+    }
+    
+    private static void executeCommand(String input, Set<String> builtins) {
+        if (input.startsWith("echo ")) {
+            handleEcho(input.substring(5).trim());
+        } else if (input.startsWith("cd ")) {
+            String path = input.substring(3).trim();
+            changeDirectory(path);
+        } else if ("pwd".equalsIgnoreCase(input)) {
+            System.out.println(currentDirectory);
+        } else if ("ls".equalsIgnoreCase(input)) {
+            System.out.println("file1.txt  file2.txt  folder1/");
+        } else if ("help".equalsIgnoreCase(input)) {
+            System.out.println("Available commands: [exit, help, ls, echo, type, pwd, cd]");
+        } else if (input.startsWith("type ")) {
+            String command = input.substring(5).trim();
+            if (builtins.contains(command)) {
+                System.out.println(command + " is a shell builtin");
+            } else {
+                findExecutable(command);
+            }
+        } else if (input.startsWith("cat ")) {
+            handleCat(input.substring(4).trim());
+        } else {
+            System.out.println("Error executing command");
+        }
+    }
+
+    private static void executeCommandWithRedirection(String input) {
+        String command = input;
+        String outputFile = null;
+        String redirectOperator = null;
+
+        if (input.contains(">")) {
+            String[] parts = input.split(">", 2);
+            command = parts[0].trim();
+            outputFile = parts[1].trim();
+            redirectOperator = ">";
+        } else if (input.contains("1>")) {
+            String[] parts = input.split("1>", 2);
+            command = parts[0].trim();
+            outputFile = parts[1].trim();
+            redirectOperator = "1>";
+        }
+
+        try (FileWriter writer = new FileWriter(outputFile)) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PrintStream ps = new PrintStream(baos);
+
+            PrintStream oldOut = System.out;
+            System.setOut(ps);
+
+            executeCommand(command, new HashSet<>(Arrays.asList("echo", "exit", "type", "pwd", "ls", "help", "cd")));
+
+            System.out.flush();
+            System.setOut(oldOut);
+
+            writer.write(baos.toString());
+        } catch (IOException e) {
+            System.out.println("Error writing to file");
         }
     }
 
