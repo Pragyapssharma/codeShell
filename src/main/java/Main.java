@@ -121,23 +121,25 @@ public class Main {
         boolean isStdoutRedirect = input.contains("1>");
 
         try (FileWriter writer = new FileWriter(outputFile)) {
-            if (command.startsWith("echo ")) {
-                // Extract and sanitize echo output
-                String echoOutput = command.substring(5).trim();
-                echoOutput = echoOutput.replaceAll("^['\"]|['\"]$", ""); // Remove leading/trailing quotes
-                writer.write(echoOutput);
+            ProcessBuilder processBuilder = new ProcessBuilder();
+            
+            // Handle redirection
+            if (isStdoutRedirect) {
+                processBuilder.command("sh", "-c", command);
+                processBuilder.redirectOutput(new File(outputFile));
             } else {
-                Process process = Runtime.getRuntime().exec(command);
-                BufferedReader reader = new BufferedReader(new InputStreamReader(
-                    isStdoutRedirect ? process.getInputStream() : process.getErrorStream()
-                ));
-
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    writer.write(line + "\n");
-                }
-                process.waitFor();
+                processBuilder.command("sh", "-c", command);
             }
+
+            Process process = processBuilder.start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                writer.write(line + "\n");
+            }
+
+            process.waitFor();
         } catch (IOException | InterruptedException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
