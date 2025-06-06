@@ -115,27 +115,27 @@ public class Main {
     
     private static void executeCommandWithRedirection(String input) {
         // Handle both '>' and '1>' equivalently for stdout redirection
-        boolean isStdoutRedirect = input.contains("1>");
         String[] parts = input.split(">", 2);
         String command = parts[0].trim();
         String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
         try (FileWriter writer = new FileWriter(outputFile)) {
-            ProcessBuilder processBuilder = new ProcessBuilder("sh", "-c", command);
-            
-            if (isStdoutRedirect) {
-                processBuilder.redirectOutput(new File(outputFile));
+            // Special case for echo, ensuring clean output
+            if (command.startsWith("echo ")) {
+                String echoOutput = command.substring(5).trim();
+                echoOutput = echoOutput.replaceAll("^['\"]|['\"]$", ""); // Remove surrounding quotes
+                writer.write(echoOutput);
+            } else {
+                Process process = new ProcessBuilder("sh", "-c", command).start();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    writer.write(line + "\n");
+                }
+
+                process.waitFor();
             }
-
-            Process process = processBuilder.start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-
-            String line;
-            while ((line = reader.readLine()) != null) {
-                writer.write(line + "\n");
-            }
-
-            process.waitFor();
         } catch (IOException | InterruptedException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
