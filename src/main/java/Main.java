@@ -115,25 +115,32 @@ public class Main {
     
     private static void executeCommandWithRedirection(String input) {
         String[] parts = input.split(">", 2);
-        String command = parts[0].trim().replaceAll("\\d+>", ""); // Remove file descriptor
-        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
+        String command = parts[0].trim();
+        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", ""); // Clean filename
+
+        // Remove `1>` or standalone `>` from the command string
+        command = command.replaceFirst("\\s*\\d*\\s*>\\s*", "").trim();
 
         try (FileWriter writer = new FileWriter(outputFile)) {
             if (command.startsWith("echo ")) {
                 String echoOutput = command.substring(5).trim();
-                if (echoOutput.startsWith("'") && echoOutput.endsWith("'")) {
-                    echoOutput = echoOutput.substring(1, echoOutput.length() - 1);
-                } else if (echoOutput.startsWith("\"") && echoOutput.endsWith("\"")) {
+
+                // Fix: Ensure both single and double quotes are removed correctly
+                if ((echoOutput.startsWith("'") && echoOutput.endsWith("'")) || 
+                    (echoOutput.startsWith("\"") && echoOutput.endsWith("\""))) {
                     echoOutput = echoOutput.substring(1, echoOutput.length() - 1);
                 }
+
                 writer.write(echoOutput);
             } else {
                 Process process = new ProcessBuilder("sh", "-c", command).start();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
                 String line;
                 while ((line = reader.readLine()) != null) {
                     writer.write(line + "\n");
                 }
+
                 process.waitFor();
             }
         } catch (IOException | InterruptedException e) {
