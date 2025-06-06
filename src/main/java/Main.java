@@ -203,7 +203,9 @@ public class Main {
         try (FileWriter writer = new FileWriter(outputFile)) {
             if (command.startsWith("echo ")) {
                 String echoOutput = command.substring(5).trim();
-                echoOutput = echoOutput.replaceAll("^['\"]|['\"]$", "");
+                if (echoOutput.startsWith("'") && echoOutput.endsWith("'")) {
+                    echoOutput = echoOutput.substring(1, echoOutput.length() - 1);
+                }
                 writer.write(echoOutput);
             } else {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
