@@ -116,16 +116,16 @@ public class Main {
     private static void executeCommandWithRedirection(String input) {
         String[] parts = input.split(">", 2);
         String command = parts[0].trim();
-        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", ""); // Clean filename
+        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "").trim(); // Clean filename
 
-        // Remove `1>` or standalone `>` from the command string
-        command = command.replaceFirst("\\s*\\d*\\s*>\\s*", "").trim();
+        // Ensure redirection (`>` and `1>`) is removed from command
+        command = command.replaceAll("\\s*\\d*\\s*>\\s*", "").trim();
 
         try (FileWriter writer = new FileWriter(outputFile)) {
             if (command.startsWith("echo ")) {
                 String echoOutput = command.substring(5).trim();
 
-                // Fix: Ensure both single and double quotes are removed correctly
+                // Fix: Remove surrounding single or double quotes before writing to file
                 if ((echoOutput.startsWith("'") && echoOutput.endsWith("'")) || 
                     (echoOutput.startsWith("\"") && echoOutput.endsWith("\""))) {
                     echoOutput = echoOutput.substring(1, echoOutput.length() - 1);
