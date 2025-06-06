@@ -218,11 +218,7 @@ public class Main {
             System.out.flush();
             System.setOut(oldOut);
 
-            if (command.startsWith("echo ")) {
-                writer.write(getEchoOutput(command.substring(5).trim()));
-            } else {
-                writer.write(baos.toString().trim());
-            }
+            writer.write(baos.toString().trim());
         } catch (IOException e) {
             System.out.println("Error writing to file");
         }
