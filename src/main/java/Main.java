@@ -25,11 +25,11 @@ public class Main {
                 System.exit(0);
             }
             
-            if (input.contains(" 1> ") || input.contains(" > ")) {
+            if (input.contains(" > ")) {
                 // redirect output stream
-                String[] arr = input.split("( 1> )|( > )");
-                String command = arr[0].trim();
-                String outputFile = arr[arr.length - 1].trim();
+            	String[] arr = input.split(">", 2);
+                String command = arr[0].trim().replaceAll("^\\d+>?", "").trim();
+                String outputFile = arr[1].trim().replaceAll("^['\"]|['\"]$", "");
 
                 try {
                     File logFile = new File(outputFile);
@@ -271,7 +271,6 @@ public class Main {
     }
 
     private static void executeCommand(String input) {
-        // Your existing code to execute commands
         if (input.startsWith("echo ")) {
             System.out.println(input.substring(5).trim().replaceAll("^['\"]|['\"]$", ""));
         } else if (input.startsWith("cat ")) {
