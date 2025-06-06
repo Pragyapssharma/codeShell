@@ -202,20 +202,22 @@ public class Main {
             PrintStream oldOut = System.out;
             System.setOut(ps);
 
-//            executeCommand(command, new HashSet<>(Arrays.asList("echo", "exit", "type", "pwd", "ls", "help", "cd")));
-            	
             if (command.startsWith("echo ")) {
                 handleEcho(command.substring(5).trim());
             } else if (command.startsWith("ls")) {
-            	executeLsCommand(command);
+                executeLsCommand(command);
             } else {
                 executeExternalProgram(command);
             }
-            
+
             System.out.flush();
             System.setOut(oldOut);
 
-            writer.write(baos.toString().trim()); 
+            if (command.startsWith("echo ")) {
+                writer.write(getEchoOutput(command.substring(5).trim()));
+            } else {
+                writer.write(baos.toString().trim());
+            }
         } catch (IOException e) {
             System.out.println("Error writing to file");
         }
