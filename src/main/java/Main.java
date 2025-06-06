@@ -116,79 +116,24 @@ public class Main {
     private static void executeCommandWithRedirection(String input) {
         String[] parts = input.split(">", 2);
         String command = parts[0].trim();
-        String outputFilePart = parts[1].trim();
-
-        // Check if file descriptor is specified
-        int fileDescriptor = 1; // Default to stdout
-        Pattern pattern = Pattern.compile("^(\\d+)>");
-        Matcher matcher = pattern.matcher(command);
-        if (matcher.find()) {
-            fileDescriptor = Integer.parseInt(matcher.group(1));
-            command = command.replaceFirst("^\\d+>", "").trim();
-        }
-
-        // Check if output file is specified with quotes
-        String outputFile = outputFilePart.replaceAll("^['\"]|['\"]$", "");
+        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
         try (FileWriter writer = new FileWriter(outputFile)) {
-            Process process;
             if (command.startsWith("echo ")) {
                 String echoOutput = command.substring(5).trim();
-                echoOutput = echoOutput.replaceAll("^['\"]|['\"]$", "");
-                writer.write(echoOutput);
-            } else if (command.startsWith("cat ")) {
-                String[] fileNames = command.substring(4).trim().split("\\s+");
-                for (String fileName : fileNames) {
-                    File file = new File(fileName);
-                    if (!file.exists()) {
-                        if (fileDescriptor == 2) {
-                            writer.write("cat: " + fileName + ": No such file or directory\n");
-                        } else {
-                            System.out.println("cat: " + fileName + ": No such file or directory");
-                        }
-                        continue;
-                    }
-
-                    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            writer.write(line + "\n");
-                        }
-                    } catch (IOException e) {
-                        if (fileDescriptor == 2) {
-                            writer.write("Error reading file: " + fileName + "\n");
-                        } else {
-                            System.out.println("Error reading file: " + fileName);
-                        }
-                    }
+                // Remove quotes if present
+                if (echoOutput.startsWith("'") && echoOutput.endsWith("'")) {
+                    echoOutput = echoOutput.substring(1, echoOutput.length() - 1);
+                } else if (echoOutput.startsWith("\"") && echoOutput.endsWith("\"")) {
+                    echoOutput = echoOutput.substring(1, echoOutput.length() - 1);
                 }
+                writer.write(echoOutput + "\n");
             } else {
-                process = new ProcessBuilder("sh", "-c", command).start();
-                if (fileDescriptor == 1) {
-                    // Redirect stdout
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        writer.write(line + "\n");
-                    }
-                } else if (fileDescriptor == 2) {
-                    // Redirect stderr
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        writer.write(line + "\n");
-                    }
-                } else {
-                    // Redirect both stdout and stderr
-                    BufferedReader readerOut = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                    BufferedReader readerErr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-                    String line;
-                    while ((line = readerOut.readLine()) != null) {
-                        writer.write(line + "\n");
-                    }
-                    while ((line = readerErr.readLine()) != null) {
-                        writer.write(line + "\n");
-                    }
+                Process process = new ProcessBuilder("sh", "-c", command).start();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    writer.write(line + "\n");
                 }
                 process.waitFor();
             }
@@ -196,6 +141,7 @@ public class Main {
             System.out.println("Error executing command: " + e.getMessage());
         }
     }
+    
     private static void changeDirectory(String newPath) {
         Path newDirPath;
 
