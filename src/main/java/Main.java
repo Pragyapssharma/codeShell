@@ -115,14 +115,13 @@ public class Main {
     
     private static void executeCommandWithRedirection(String input) {
         String[] parts = input.split(">", 2);
-        String command = parts[0].trim();
+        String command = parts[0].trim().replaceAll("\\d+>$", ""); // Remove file descriptor
         String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
         try (FileWriter writer = new FileWriter(outputFile)) {
             if (command.startsWith("echo ")) {
-                int echoIndex = command.indexOf("echo") + 4;
-                String echoOutput = command.substring(echoIndex).trim();
-                echoOutput = echoOutput.replaceAll("^['\"]|['\"]$", "");
+                String echoOutput = command.substring(5).trim();
+                echoOutput = echoOutput.replaceAll("^['\"]|['\"]$", ""); // Remove quotes
                 writer.write(echoOutput + "\n");
             } else {
                 Process process = new ProcessBuilder("sh", "-c", command).start();
