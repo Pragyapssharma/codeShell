@@ -373,6 +373,7 @@ public class Main {
             if (directory.exists() && directory.isDirectory()) {
                 String[] files = directory.list();
                 if (files != null) {
+                    Arrays.sort(files); // sort the files
                     for (String file : files) {
                         System.out.println(file);
                     }
@@ -384,6 +385,7 @@ public class Main {
             // list current directory
             String[] files = directory.list();
             if (files != null) {
+                Arrays.sort(files); // sort the files
                 for (String file : files) {
                     System.out.println(file);
                 }
