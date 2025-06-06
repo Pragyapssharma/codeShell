@@ -23,7 +23,7 @@ public class Main {
                 System.exit(0);
             }
             
-            if (input.contains(">") || input.contains("1>")) {
+            if (input.contains(">")) {
                 executeCommandWithRedirection(input);
                 continue;
             }
@@ -114,21 +114,17 @@ public class Main {
     }
     
     private static void executeCommandWithRedirection(String input) {
+        // Handle both '>' and '1>' equivalently for stdout redirection
+        boolean isStdoutRedirect = input.contains("1>");
         String[] parts = input.split(">", 2);
         String command = parts[0].trim();
-        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", ""); // Clean filename
-
-        boolean isStdoutRedirect = input.contains("1>");
+        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
         try (FileWriter writer = new FileWriter(outputFile)) {
-            ProcessBuilder processBuilder = new ProcessBuilder();
+            ProcessBuilder processBuilder = new ProcessBuilder("sh", "-c", command);
             
-            // Handle redirection
             if (isStdoutRedirect) {
-                processBuilder.command("sh", "-c", command);
                 processBuilder.redirectOutput(new File(outputFile));
-            } else {
-                processBuilder.command("sh", "-c", command);
             }
 
             Process process = processBuilder.start();
@@ -176,7 +172,7 @@ public class Main {
         for (String fileName : fileNames) {
             File file = new File(fileName);
             if (!file.exists()) {
-                System.out.println("Error: File not found - " + fileName);
+                System.out.println("cat: " + fileName + ": No such file or directory");
                 continue;
             }
 
@@ -190,6 +186,7 @@ public class Main {
             }
         }
     }
+
     
     private static void executeLsCommand(String command) {
         File directory = new File(currentDirectory);
