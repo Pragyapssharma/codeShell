@@ -116,18 +116,22 @@ public class Main {
     private static void executeCommandWithRedirection(String input) {
         String[] parts = input.split(">", 2);
         String command = parts[0].trim();
-        String outputFile = parts[1].trim();
+        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", ""); // Clean filename
 
-        // Clean up filename
-        outputFile = outputFile.replaceAll("^['\"]|['\"]$", "");
+        boolean isStdoutRedirect = input.contains("1>");
 
         try (FileWriter writer = new FileWriter(outputFile)) {
             if (command.startsWith("echo ")) {
-                String echoOutput = command.substring(5).trim().replaceAll("^['\"]|['\"]$", "");
+                // Extract and sanitize echo output
+                String echoOutput = command.substring(5).trim();
+                echoOutput = echoOutput.replaceAll("^['\"]|['\"]$", ""); // Remove leading/trailing quotes
                 writer.write(echoOutput);
             } else {
                 Process process = Runtime.getRuntime().exec(command);
-                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(
+                    isStdoutRedirect ? process.getInputStream() : process.getErrorStream()
+                ));
+
                 String line;
                 while ((line = reader.readLine()) != null) {
                     writer.write(line + "\n");
@@ -135,7 +139,7 @@ public class Main {
                 process.waitFor();
             }
         } catch (IOException | InterruptedException e) {
-            System.out.println("Error writing to file");
+            System.out.println("Error executing command: " + e.getMessage());
         }
     }
 
