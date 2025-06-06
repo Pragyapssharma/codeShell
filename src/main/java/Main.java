@@ -356,8 +356,20 @@ public class Main {
     
     private static void executeLsCommand(String command) {
         String[] parts = command.split("\\s+");
+        File directory = new File(currentDirectory);
         if (parts.length > 1) {
-            File directory = new File(parts[1]);
+            List<String> options = new ArrayList<>();
+            List<String> directories = new ArrayList<>();
+            for (int i = 1; i < parts.length; i++) {
+                if (parts[i].startsWith("-")) {
+                    options.add(parts[i]);
+                } else {
+                    directories.add(parts[i]);
+                }
+            }
+            if (!directories.isEmpty()) {
+                directory = new File(directories.get(0));
+            }
             if (directory.exists() && directory.isDirectory()) {
                 String[] files = directory.list();
                 if (files != null) {
@@ -366,11 +378,10 @@ public class Main {
                     }
                 }
             } else {
-                System.out.println("ls: cannot access '" + parts[1] + "': No such file or directory");
+                System.out.println("ls: cannot access '" + directory.getAbsolutePath() + "': No such file or directory");
             }
         } else {
             // list current directory
-            File directory = new File(currentDirectory);
             String[] files = directory.list();
             if (files != null) {
                 for (String file : files) {
