@@ -202,8 +202,7 @@ public class Main {
 
         try (FileWriter writer = new FileWriter(outputFile)) {
             if (command.startsWith("echo ")) {
-                String echoOutput = command.substring(5).trim();
-                echoOutput = echoOutput.replaceAll("^['\"]|['\"]$", ""); // remove quotes
+                String echoOutput = getEchoOutput(command.substring(5).trim());
                 writer.write(echoOutput);
             } else {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
