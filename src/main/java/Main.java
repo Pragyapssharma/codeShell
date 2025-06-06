@@ -137,22 +137,12 @@ public class Main {
                 System.out.println(echoOutput);
             }
         } else {
-            try {
-                Process process = Runtime.getRuntime().exec(command);
-                if (outputFile != null) {
-                    FileOutputStream fos = new FileOutputStream(outputFile);
-                    byte[] buffer = new byte[1024];
-                    int bytesRead;
-                    while ((bytesRead = process.getInputStream().read(buffer)) != -1) {
-                        fos.write(buffer, 0, bytesRead);
-                    }
-                    fos.close();
-                } else {
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        System.out.println(line);
-                    }
+        	try {
+                Process process = Runtime.getRuntime().exec(input);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line);
                 }
                 process.waitFor();
             } catch (IOException | InterruptedException e) {
@@ -211,8 +201,16 @@ public class Main {
             PrintStream oldOut = System.out;
             System.setOut(ps);
 
-            executeCommand(command, new HashSet<>(Arrays.asList("echo", "exit", "type", "pwd", "ls", "help", "cd")));
-
+//            executeCommand(command, new HashSet<>(Arrays.asList("echo", "exit", "type", "pwd", "ls", "help", "cd")));
+            	
+            if (command.startsWith("echo ")) {
+                handleEcho(command.substring(5).trim());
+            } else if (command.startsWith("ls")) {
+                executeLs();
+            } else {
+                executeExternalProgram(command);
+            }
+            
             System.out.flush();
             System.setOut(oldOut);
 
@@ -353,6 +351,16 @@ public class Main {
             process.waitFor();
         } catch (IOException | InterruptedException e) {
             System.out.println("Error reading files");
+        }
+    }
+    
+    private static void executeLs() {
+        File directory = new File(currentDirectory);
+        String[] files = directory.list();
+        if (files != null) {
+            for (String file : files) {
+                System.out.println(file);
+            }
         }
     }
 
