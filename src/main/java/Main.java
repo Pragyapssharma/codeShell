@@ -117,13 +117,18 @@ public class Main {
         // Handle both '>' and '1>' equivalently for stdout redirection
         String[] parts = input.split(">", 2);
         String command = parts[0].trim();
-        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
+        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", ""); // Clean filename
 
         try (FileWriter writer = new FileWriter(outputFile)) {
-            // Special case for echo, ensuring clean output
+            // Special handling for `echo` commands to ensure clean output
             if (command.startsWith("echo ")) {
                 String echoOutput = command.substring(5).trim();
-                echoOutput = echoOutput.replaceAll("^['\"]|['\"]$", ""); // Remove surrounding quotes
+
+                // Fix: Remove single quotes properly before writing
+                if (echoOutput.startsWith("'") && echoOutput.endsWith("'")) {
+                    echoOutput = echoOutput.substring(1, echoOutput.length() - 1);
+                }
+
                 writer.write(echoOutput);
             } else {
                 Process process = new ProcessBuilder("sh", "-c", command).start();
