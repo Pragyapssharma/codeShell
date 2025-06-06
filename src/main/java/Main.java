@@ -118,15 +118,10 @@ public class Main {
         String command = parts[0].trim();
         String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
-        // Check if file descriptor is specified
-        if (command.matches(".*\\d+>$")) {
-            command = command.replaceAll("\\d+>$", "").trim();
-        }
-
         try (FileWriter writer = new FileWriter(outputFile)) {
             if (command.startsWith("echo ")) {
-                String echoOutput = command.substring(5).trim();
-                // Remove quotes if present
+                int echoIndex = command.indexOf("echo") + 4;
+                String echoOutput = command.substring(echoIndex).trim();
                 echoOutput = echoOutput.replaceAll("^['\"]|['\"]$", "");
                 writer.write(echoOutput + "\n");
             } else {
