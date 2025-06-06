@@ -136,31 +136,27 @@ public class Main {
     private static void executeCommandWithRedirection(String input) {
         String[] parts = input.split(">", 2);
         String command = parts[0].trim();
-        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", ""); // Clean up the filename
-
-        boolean isStdoutRedirect = input.contains("1>");
+        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
         try (FileWriter writer = new FileWriter(outputFile)) {
-            if (command.startsWith("echo ")) {
-                // Extract and sanitize the echo output
-                String echoOutput = command.substring(5).trim();
-                echoOutput = echoOutput.replaceAll("^['\"]|['\"]$", ""); // Remove surrounding quotes
+            Process process = Runtime.getRuntime().exec(command);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 
-                writer.write(echoOutput);
+            StringBuilder output = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+            
+            process.waitFor();
+
+            if (output.length() > 0) {
+                writer.write(output.toString().trim());
             } else {
-                Process process = Runtime.getRuntime().exec(command);
-                BufferedReader reader = new BufferedReader(new InputStreamReader(
-                    isStdoutRedirect ? process.getInputStream() : process.getErrorStream()
-                ));
-
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    writer.write(line + "\n");
-                }
-                process.waitFor();
+                System.out.println("Error: Command produced no output");
             }
         } catch (IOException | InterruptedException e) {
-            System.out.println("Error writing to file");
+            System.out.println("Error executing command: " + e.getMessage());
         }
     }
 
