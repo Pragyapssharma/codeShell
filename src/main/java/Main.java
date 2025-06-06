@@ -73,6 +73,7 @@ public class Main {
             // Handle external program
             if (input.contains(">") || input.contains("1>")) {
                 executeCommandWithRedirection(input);
+                continue;
             } else if (input.startsWith("echo ")) {
                 handleEcho(input.substring(5).trim());
             } else if (input.startsWith("cat ")) {
