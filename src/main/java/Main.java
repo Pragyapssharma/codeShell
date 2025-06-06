@@ -133,39 +133,14 @@ public class Main {
         }
     }
     
-    private static void executeCommand(String input, Set<String> builtins) {
-        if (input.startsWith("echo ")) {
-            handleEcho(input.substring(5).trim());
-        } else if (input.startsWith("cd ")) {
-            String path = input.substring(3).trim();
-            changeDirectory(path);
-        } else if ("pwd".equalsIgnoreCase(input)) {
-            System.out.println(currentDirectory);
-        } else if ("ls".equalsIgnoreCase(input)) {
-            System.out.println("file1.txt  file2.txt  folder1/");
-        } else if ("help".equalsIgnoreCase(input)) {
-            System.out.println("Available commands: [exit, help, ls, echo, type, pwd, cd]");
-        } else if (input.startsWith("type ")) {
-            String command = input.substring(5).trim();
-            if (builtins.contains(command)) {
-                System.out.println(command + " is a shell builtin");
-            } else {
-                findExecutable(command);
-            }
-        } else if (input.startsWith("cat ")) {
-            handleCat(input.substring(4).trim());
-        } else {
-            System.out.println("Error executing command");
-        }
-    }
-
     private static void executeCommandWithRedirection(String input) {
-        String command = input.split(">", 2)[0].trim();
-        String outputFile = input.split(">", 2)[1].trim();
+        String[] parts = input.split(">", 2);
+        String command = parts[0].trim();
+        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", ""); // Remove extra quotes
 
         try (FileWriter writer = new FileWriter(outputFile)) {
             if (command.startsWith("echo ")) {
-                String echoOutput = command.substring(5).trim().replaceAll("^['\"]|['\"]$", "");
+                String echoOutput = command.substring(5).trim().replaceAll("^['\"]|['\"]$", ""); // Remove quotes before writing
                 writer.write(echoOutput);
             } else {
                 Process process = Runtime.getRuntime().exec(command);
@@ -179,34 +154,6 @@ public class Main {
         } catch (IOException | InterruptedException e) {
             System.out.println("Error writing to file");
         }
-    }
-
-    private static String getEchoOutput(String content) {
-        StringBuilder result = new StringBuilder(); 
-        boolean inSingleQuote = false;
-        boolean inDoubleQuote = false;
-        boolean escapeNext = false;
-
-        for (char c : content.toCharArray()) {
-            if (escapeNext) {
-                result.append(c);
-                escapeNext = false;
-            } else if (c == '\\' && !inSingleQuote) {
-                escapeNext = true;
-            } else if (c == '\'' && !inDoubleQuote) {
-                inSingleQuote = !inSingleQuote;
-            } else if (c == '"' && !inSingleQuote) {
-                inDoubleQuote = !inDoubleQuote;
-            } else if (Character.isWhitespace(c) && !inSingleQuote && !inDoubleQuote) {
-                if (result.length() > 0 && !Character.isWhitespace(result.charAt(result.length() - 1))) {
-                    result.append(' ');
-                }
-            } else {
-                result.append(c);
-            }
-        }
-
-        return result.toString();
     }
 
     private static void changeDirectory(String newPath) {
