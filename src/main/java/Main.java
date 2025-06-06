@@ -7,7 +7,8 @@ import java.util.regex.Pattern;
 public class Main {
 	
 	private static String currentDirectory = System.getProperty("user.dir"); // Track manually
-	
+	final static PrintStream stdOut = System.out;
+
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         
@@ -20,13 +21,15 @@ public class Main {
             
             if ("exit 0".equalsIgnoreCase(input)) {
                 scanner.close();
-                System.exit(0);
+//                System.exit(0);
             }
             
             if (input.contains(">")) {
                 executeCommandWithRedirection(input);
                 continue;
             }
+            
+            input = handleRedirection(input);
 
             if (input.startsWith("echo ")) {
             	System.out.println(handleEcho(input.substring(5).trim()));
@@ -207,5 +210,33 @@ public class Main {
             System.out.println("Error: Directory not found.");
         }
     }
+    
+    private static String handleRedirection(String input) {
+        if (input.contains(" 1> ") || input.contains(" > ")) {
+            // Redirect output stream
+            String[] arr = input.split("( 1> )|( > )");
+            File logFile = new File(arr[arr.length - 1]);
+            File path = logFile.getParentFile();
+
+            if (!(path.exists())) {
+                path.mkdirs();
+            } else if (logFile.exists()) {
+                logFile.delete();
+            }
+            
+            try {
+                logFile.createNewFile();
+                System.setOut(new PrintStream(logFile));
+            } catch (IOException e) {
+                System.out.println("Error: Could not create file for redirection.");
+            }
+
+            return arr[0];
+        } else {
+            System.setOut(stdOut);
+            return input;
+        }
+    }
+
 
 }
