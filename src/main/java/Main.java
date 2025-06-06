@@ -282,7 +282,7 @@ public class Main {
         }
     }
     
-    private static void handleEcho(String content) {
+    private static String handleEcho(String content) {
         StringBuilder result = new StringBuilder();
         boolean inSingleQuote = false;
         boolean inDoubleQuote = false;
@@ -307,7 +307,7 @@ public class Main {
             }
         }
 
-        System.out.println(result.toString());
+        return result.toString();
     }
 
     private static void handleCat(String content) {
