@@ -116,6 +116,10 @@ public class Main {
     private static void executeCommandWithRedirection(String input) {
         String[] parts = input.split(">", 2);
         String command = parts[0].trim();
+        // Check if file descriptor is specified
+        if (command.matches(".*\\d+>$")) {
+            command = command.replaceAll("\\d+>$", "").trim();
+        }
         String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
         try (FileWriter writer = new FileWriter(outputFile)) {
