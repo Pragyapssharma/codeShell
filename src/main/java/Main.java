@@ -75,27 +75,7 @@ public class Main {
                 continue;
             }
 
-            // Handle external program
-            if (input.contains(">") || input.contains("1>")) {
-                executeCommandWithRedirection(input);
-                continue;
-            } else if (input.startsWith("echo ")) {
-                handleEcho(input.substring(5).trim());
-            } else if (input.startsWith("cat ")) {
-                handleCat(input.substring(4).trim());
-            } else if (input.startsWith("type ")) {
-                String command = input.substring(5).trim();
-                if (builtins.contains(command)) {
-                    System.out.println(command + " is a shell builtin");
-                } else {
-                    findExecutable(command);
-                }
-            } else if (input.startsWith("cd ")) {
-                String path = input.substring(3).trim();
-                changeDirectory(path);
-            } else {
-                executeExternalProgram(input);
-            }
+            executeExternalProgram(input);
             
         }
     }
@@ -136,27 +116,26 @@ public class Main {
     private static void executeCommandWithRedirection(String input) {
         String[] parts = input.split(">", 2);
         String command = parts[0].trim();
-        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
+        String outputFile = parts[1].trim();
+
+        // Clean up filename
+        outputFile = outputFile.replaceAll("^['\"]|['\"]$", "");
 
         try (FileWriter writer = new FileWriter(outputFile)) {
-            Process process = Runtime.getRuntime().exec(command);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-
-            StringBuilder output = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-            }
-            
-            process.waitFor();
-
-            if (output.length() > 0) {
-                writer.write(output.toString().trim());
+            if (command.startsWith("echo ")) {
+                String echoOutput = command.substring(5).trim().replaceAll("^['\"]|['\"]$", "");
+                writer.write(echoOutput);
             } else {
-                System.out.println("Error: Command produced no output");
+                Process process = Runtime.getRuntime().exec(command);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    writer.write(line + "\n");
+                }
+                process.waitFor();
             }
         } catch (IOException | InterruptedException e) {
-            System.out.println("Error executing command: " + e.getMessage());
+            System.out.println("Error writing to file");
         }
     }
 
@@ -186,10 +165,16 @@ public class Main {
 
 
     private static void handleCat(String content) {
-        List<String> fileNames = Arrays.asList(content.split("\\s+")); // Split by spaces
+        List<String> fileNames = Arrays.asList(content.split("\\s+"));
 
         for (String fileName : fileNames) {
-            try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+            File file = new File(fileName);
+            if (!file.exists()) {
+                System.out.println("Error: File not found - " + fileName);
+                continue;
+            }
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     System.out.println(line);
@@ -208,8 +193,9 @@ public class Main {
             for (String file : files) {
                 System.out.println(file);
             }
+        } else {
+            System.out.println("Error: Directory not found.");
         }
     }
-
 
 }
