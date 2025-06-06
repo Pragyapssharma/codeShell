@@ -136,11 +136,12 @@ public class Main {
     private static void executeCommandWithRedirection(String input) {
         String[] parts = input.split(">", 2);
         String command = parts[0].trim();
-        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", ""); // Remove extra quotes
+        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", ""); // Ensure no quotes remain in filename
 
         try (FileWriter writer = new FileWriter(outputFile)) {
             if (command.startsWith("echo ")) {
-                String echoOutput = command.substring(5).trim().replaceAll("^['\"]|['\"]$", ""); // Remove quotes before writing
+                String echoOutput = command.substring(5).trim();
+                echoOutput = echoOutput.replaceAll("^['\"]|['\"]$", ""); // Remove quotes from echoed content
                 writer.write(echoOutput);
             } else {
                 Process process = Runtime.getRuntime().exec(command);
