@@ -122,6 +122,7 @@ public class Main {
             if (command.startsWith("echo ")) {
                 String echoOutput = command.substring(5).trim();
 
+                // Fix: Remove surrounding single/double quotes before writing
                 if ((echoOutput.startsWith("'") && echoOutput.endsWith("'")) || 
                     (echoOutput.startsWith("\"") && echoOutput.endsWith("\""))) {
                     echoOutput = echoOutput.substring(1, echoOutput.length() - 1);
