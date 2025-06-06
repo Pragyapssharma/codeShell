@@ -29,7 +29,7 @@ public class Main {
             }
 
             if (input.startsWith("echo ")) {
-                handleEcho(input.substring(5).trim());
+            	System.out.println(handleEcho(input.substring(5).trim()));
                 continue;
             }
             
