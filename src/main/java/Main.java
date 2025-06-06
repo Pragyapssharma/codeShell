@@ -22,6 +22,11 @@ public class Main {
                 scanner.close();
                 System.exit(0);
             }
+            
+            if (input.contains(">") || input.contains("1>")) {
+                executeCommandWithRedirection(input);
+                continue;
+            }
 
             if (input.startsWith("echo ")) {
                 handleEcho(input.substring(5).trim());
@@ -37,9 +42,9 @@ public class Main {
                 String command = input.substring(5).trim();
                 if (builtins.contains(command)) {
                     System.out.println(command + " is a shell builtin");
-                    continue;
+                } else {
+                    findExecutable(command);
                 }
-                findExecutable(command);
                 continue;
             }
             
