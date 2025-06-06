@@ -201,24 +201,26 @@ public class Main {
         }
 
         try (FileWriter writer = new FileWriter(outputFile)) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PrintStream ps = new PrintStream(baos);
-
-            PrintStream oldOut = System.out;
-            System.setOut(ps);
-
             if (command.startsWith("echo ")) {
-                handleEcho(command.substring(5).trim());
-            } else if (command.startsWith("ls")) {
-                executeLsCommand(command);
+                writer.write(getEchoOutput(command.substring(5).trim()));
             } else {
-                executeExternalProgram(command);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                PrintStream ps = new PrintStream(baos);
+
+                PrintStream oldOut = System.out;
+                System.setOut(ps);
+
+                if (command.startsWith("ls")) {
+                    executeLsCommand(command);
+                } else {
+                    executeExternalProgram(command);
+                }
+
+                System.out.flush();
+                System.setOut(oldOut);
+
+                writer.write(baos.toString().trim());
             }
-
-            System.out.flush();
-            System.setOut(oldOut);
-
-            writer.write(baos.toString().trim());
         } catch (IOException e) {
             System.out.println("Error writing to file");
         }
