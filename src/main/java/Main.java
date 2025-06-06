@@ -206,7 +206,7 @@ public class Main {
             if (command.startsWith("echo ")) {
                 handleEcho(command.substring(5).trim());
             } else if (command.startsWith("ls")) {
-                executeLs();
+            	executeLsCommand(command);
             } else {
                 executeExternalProgram(command);
             }
@@ -214,7 +214,7 @@ public class Main {
             System.out.flush();
             System.setOut(oldOut);
 
-            writer.write(baos.toString());
+            writer.write(baos.toString().trim()); 
         } catch (IOException e) {
             System.out.println("Error writing to file");
         }
@@ -354,12 +354,28 @@ public class Main {
         }
     }
     
-    private static void executeLs() {
-        File directory = new File(currentDirectory);
-        String[] files = directory.list();
-        if (files != null) {
-            for (String file : files) {
-                System.out.println(file);
+    private static void executeLsCommand(String command) {
+        String[] parts = command.split("\\s+");
+        if (parts.length > 1) {
+            File directory = new File(parts[1]);
+            if (directory.exists() && directory.isDirectory()) {
+                String[] files = directory.list();
+                if (files != null) {
+                    for (String file : files) {
+                        System.out.println(file);
+                    }
+                }
+            } else {
+                System.out.println("ls: cannot access '" + parts[1] + "': No such file or directory");
+            }
+        } else {
+            // list current directory
+            File directory = new File(currentDirectory);
+            String[] files = directory.list();
+            if (files != null) {
+                for (String file : files) {
+                    System.out.println(file);
+                }
             }
         }
     }
