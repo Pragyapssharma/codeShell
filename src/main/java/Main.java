@@ -16,17 +16,49 @@ public class Main {
         
 
         while (true) {
-            System.out.print("$ "); // Shell prompt
+        	stdOut.print("$ ");
+//            System.out.print("$ "); // Shell prompt
             String input = scanner.nextLine().trim();
             
             if ("exit 0".equalsIgnoreCase(input)) {
                 scanner.close();
-//                System.exit(0);
+                System.exit(0);
             }
             
-            if (input.contains(">")) {
-                executeCommandWithRedirection(input);
-                continue;
+            if (input.contains(" 1> ") || input.contains(" > ")) {
+                // redirect output stream
+                String[] arr = input.split("( 1> )|( > )");
+                String command = arr[0].trim();
+                String outputFile = arr[arr.length - 1].trim();
+
+                try {
+                    File logFile = new File(outputFile);
+                    File path = logFile.getParentFile();
+                    if (!(path.exists())) {
+                        path.mkdirs();
+                    } else if (logFile.exists()) {
+                        logFile.delete();
+                    }
+                    logFile.createNewFile();
+
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    PrintStream ps = new PrintStream(baos);
+                    PrintStream oldOut = System.out;
+                    System.setOut(ps);
+
+                    executeCommand(command);
+
+                    System.out.flush();
+                    System.setOut(oldOut);
+                    FileWriter writer = new FileWriter(logFile);
+                    writer.write(baos.toString());
+                    writer.close();
+                } catch (Exception e) {
+                    System.out.println("Error executing command: " + e.getMessage());
+                }
+            }
+            else {
+                executeCommand(input);
             }
             
             input = handleRedirection(input);
@@ -238,5 +270,21 @@ public class Main {
         }
     }
 
+    private static void executeCommand(String input) {
+        // Your existing code to execute commands
+        if (input.startsWith("echo ")) {
+            System.out.println(input.substring(5).trim().replaceAll("^['\"]|['\"]$", ""));
+        } else if (input.startsWith("cat ")) {
+            handleCat(input.substring(4).trim());
+        } else if (input.startsWith("cd ")) {
+            changeDirectory(input.substring(3).trim());
+        } else if (input.equals("pwd")) {
+            System.out.println(currentDirectory);
+        } else if (input.equals("ls")) {
+            executeLsCommand(input);
+        } else {
+            executeExternalProgram(input);
+        }
+    }
 
 }
