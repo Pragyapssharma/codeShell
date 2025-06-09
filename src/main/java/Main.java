@@ -164,22 +164,13 @@ public class Main {
         String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
         try (FileWriter writer = new FileWriter(outputFile)) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PrintStream ps = new PrintStream(baos);
-            PrintStream oldOut = System.out;
-            System.setOut(ps);
-
             if (command.startsWith("echo ")) {
-                System.out.println(handleEcho(command.substring(5).trim()));
+                writer.write(handleEcho(command.substring(5).trim()) + "\n");
             } else if (command.startsWith("cat ")) {
                 handleCatForRedirection(command.substring(4).trim(), writer);
             } else {
                 executeExternalProgramForRedirection(command, writer);
             }
-
-            System.out.flush();
-            System.setOut(oldOut);
-            writer.write(baos.toString());
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
