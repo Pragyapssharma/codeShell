@@ -25,11 +25,16 @@ public class Main {
                 System.exit(0);
             }
             
+            executeCommand(input);
+     /*       
             if (input.contains(" > ")) {
                 // redirect output stream
-            	String[] arr = input.split(">", 2);
-                String command = arr[0].trim().replaceAll("^\\d+>?", "").trim();
-                String outputFile = arr[1].trim().replaceAll("^['\"]|['\"]$", "");
+            	 String[] parts = input.split(">", 2);
+            	 String command = parts[0].trim();
+            	 if (command.matches(".*\\d+$")) {
+            	        command = command.replaceAll("\\d+$", "").trim();
+            	    }
+            	    String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
                 try {
                     File logFile = new File(outputFile);
@@ -100,17 +105,17 @@ public class Main {
                 continue;
             }
 */
-            if ("ls".equalsIgnoreCase(input)) {
-            	executeLsCommand(input);
-                continue;
-            }
-
-            if ("help".equalsIgnoreCase(input)) {
-                System.out.println("Available commands: " + builtins);
-                continue;
-            }
-
-            executeExternalProgram(input);
+//            if ("ls".equalsIgnoreCase(input)) {
+//            	executeLsCommand(input);
+//                continue;
+//            }
+//
+//            if ("help".equalsIgnoreCase(input)) {
+//                System.out.println("Available commands: " + builtins);
+//                continue;
+//            }
+//
+//            executeExternalProgram(input);
             
         }
     }
@@ -149,36 +154,33 @@ public class Main {
     }
     
     private static void executeCommandWithRedirection(String input) {
-        String[] parts = input.split(">", 2);
+        String[] parts;
+        if (input.contains(" 1> ")) {
+            parts = input.split(" 1> ");
+        } else {
+            parts = input.split(" > ");
+        }
         String command = parts[0].trim();
-        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "").trim(); // Clean filename
-
-        // Ensure redirection (`>` and `1>`) is removed from command
-        command = command.replaceAll("\\s*\\d*\\s*>\\s*", "").trim();
+        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
         try (FileWriter writer = new FileWriter(outputFile)) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PrintStream ps = new PrintStream(baos);
+            PrintStream oldOut = System.out;
+            System.setOut(ps);
+
             if (command.startsWith("echo ")) {
-                String echoOutput = command.substring(5).trim();
-
-                // Fix: Remove surrounding single or double quotes before writing to file
-                if ((echoOutput.startsWith("'") && echoOutput.endsWith("'")) || 
-                    (echoOutput.startsWith("\"") && echoOutput.endsWith("\""))) {
-                    echoOutput = echoOutput.substring(1, echoOutput.length() - 1);
-                }
-
-                writer.write(echoOutput);
+                System.out.println(handleEcho(command.substring(5).trim()));
+            } else if (command.startsWith("cat ")) {
+                handleCatForRedirection(command.substring(4).trim(), writer);
             } else {
-                Process process = new ProcessBuilder("sh", "-c", command).start();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    writer.write(line + "\n");
-                }
-
-                process.waitFor();
+                executeExternalProgramForRedirection(command, writer);
             }
-        } catch (IOException | InterruptedException e) {
+
+            System.out.flush();
+            System.setOut(oldOut);
+            writer.write(baos.toString());
+        } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
     }
@@ -228,7 +230,56 @@ public class Main {
             }
         }
     }
+    
+    private static void handleCatForRedirection(String content, FileWriter writer) {
+        List<String> fileNames = Arrays.asList(content.split("\\s+"));
 
+        for (String fileName : fileNames) {
+            File file = new File(fileName);
+            if (!file.exists()) {
+                try {
+                    writer.write("cat: " + fileName + ": No such file or directory\n");
+                } catch (IOException e) {
+                    System.out.println("Error writing to file: " + e.getMessage());
+                }
+                continue;
+            }
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    writer.write(line + "\n");
+                }
+            } catch (IOException e) {
+                System.out.println("Error reading file: " + fileName);
+            }
+        }
+    }
+    
+    private static void executeExternalProgramForRedirection(String input, FileWriter writer) {
+        try {
+            Process process = Runtime.getRuntime().exec(input);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                writer.write(line + "\n");
+            }
+
+            while ((line = errorReader.readLine()) != null) {
+                writer.write(line + "\n");
+            }
+
+            process.waitFor();
+        } catch (IOException | InterruptedException e) {
+            try {
+                writer.write("Error executing command: " + e.getMessage() + "\n");
+            } catch (IOException ex) {
+                System.out.println("Error writing to file: " + ex.getMessage());
+            }
+        }
+    }
     
     private static void executeLsCommand(String command) {
         File directory = new File(currentDirectory);
@@ -271,8 +322,10 @@ public class Main {
     }
 
     private static void executeCommand(String input) {
-        if (input.startsWith("echo ")) {
-            System.out.println(input.substring(5).trim().replaceAll("^['\"]|['\"]$", ""));
+        if (input.contains(">") || input.contains("1>")) {
+            executeCommandWithRedirection(input);
+        } else if (input.startsWith("echo ")) {
+            System.out.println(handleEcho(input.substring(5).trim()));
         } else if (input.startsWith("cat ")) {
             handleCat(input.substring(4).trim());
         } else if (input.startsWith("cd ")) {
