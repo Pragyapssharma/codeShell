@@ -251,16 +251,14 @@ public class Main {
     private static void executeExternalProgramForRedirection(String input, FileWriter writer) {
         try {
             Process process = Runtime.getRuntime().exec(input);
-            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
             String line;
-            while ((line = errorReader.readLine()) != null) {
-                writer.write(line + "\n");
-            }
-
-            while ((line = reader.readLine()) != null) {
-                writer.write(line + "\n");
+            while ((line = errorReader.readLine()) != null || (line = reader.readLine()) != null) {
+                if (line != null) {
+                    writer.write(line + "\n");
+                }
             }
 
             process.waitFor();
@@ -272,6 +270,7 @@ public class Main {
             }
         }
     }
+    
     
     private static void executeLsCommand(String command) {
         File directory = new File(currentDirectory);
