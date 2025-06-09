@@ -166,11 +166,9 @@ public class Main {
             } else if (command.startsWith("cat ")) {
                 handleCat(command.substring(4).trim(), writer);
             } else if (command.startsWith("ls")) {
-                String path;
-                if (command.trim().length() > 2) {
-                    path = command.substring(3).trim();
-                } else {
-                    path = currentDirectory;
+                String path = currentDirectory;
+                if (command.contains(" ")) {
+                    path = command.substring(command.indexOf(" ") + 1).trim();
                 }
                 File directory = new File(path);
                 String[] files = directory.list();
