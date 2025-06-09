@@ -166,12 +166,17 @@ public class Main {
             } else if (command.startsWith("cat ")) {
                 handleCat(command.substring(4).trim(), writer);
             } else if (command.startsWith("ls")) {
-                String[] commandParts = command.split("\\s+");
-                String path = currentDirectory;
-                if (commandParts.length > 1) {
+                String path;
+                if (command.trim().equals("ls")) {
+                    path = currentDirectory;
+                } else {
+                    String[] commandParts = command.split("\\s+");
                     path = commandParts[commandParts.length - 1];
                 }
                 File directory = new File(path);
+                if (!directory.isAbsolute()) {
+                    directory = new File(currentDirectory, path);
+                }
                 String[] files = directory.list();
                 if (files != null) {
                     Arrays.sort(files);
