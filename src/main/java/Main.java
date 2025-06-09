@@ -193,7 +193,11 @@ public class Main {
     }
 
     private static String handleEcho(String content) {
-        return content.replaceAll("^['\"]|['\"]$", "").trim();
+        if ((content.startsWith("'") && content.endsWith("'")) || 
+            (content.startsWith("\"") && content.endsWith("\""))) {
+            content = content.substring(1, content.length() - 1);
+        }
+        return content.trim();
     }
 
 
@@ -242,6 +246,7 @@ public class Main {
     private static void executeExternalProgramForRedirection(String input, PrintWriter writer) {
         try {
             ProcessBuilder processBuilder = new ProcessBuilder(input.split("\\s+"));
+            
             processBuilder.redirectErrorStream(true);
 
             Process process = processBuilder.start();
@@ -249,14 +254,14 @@ public class Main {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    writer.write(line + "\n");
+                    writer.println(line);
                 }
 
                 process.waitFor();
                 writer.flush();
             }
         } catch (IOException | InterruptedException e) {
-            writer.write("Error executing command: " + e.getMessage() + "\n");
+            writer.println("Error executing command: " + e.getMessage());
         }
     }
     
