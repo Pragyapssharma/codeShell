@@ -251,35 +251,19 @@ public class Main {
     private static void executeExternalProgramForRedirection(String input, FileWriter writer) {
         try {
             Process process = Runtime.getRuntime().exec(input);
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 
-            Thread outputThread = new Thread(() -> {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        writer.write(line + "\n");
-                    }
-                } catch (IOException e) {
-                    System.out.println("Error reading output: " + e.getMessage());
-                }
-            });
+            String line;
+            while ((line = errorReader.readLine()) != null) {
+                writer.write(line + "\n");
+            }
 
-            Thread errorThread = new Thread(() -> {
-                try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-                    String line;
-                    while ((line = errorReader.readLine()) != null) {
-                        writer.write(line + "\n");
-                    }
-                } catch (IOException e) {
-                    System.out.println("Error reading error stream: " + e.getMessage());
-                }
-            });
-
-            outputThread.start();
-            errorThread.start();
+            while ((line = reader.readLine()) != null) {
+                writer.write(line + "\n");
+            }
 
             process.waitFor();
-            outputThread.join();
-            errorThread.join();
         } catch (IOException | InterruptedException e) {
             try {
                 writer.write("Error executing command: " + e.getMessage() + "\n");
