@@ -241,7 +241,7 @@ public class Main {
                     writer.println(line);
                 }
             } catch (IOException e) {
-                writer.println("Error reading file: " + fileName);
+                writer.println("cat: " + fileName + ": Error reading file");
             }
         }
     }
