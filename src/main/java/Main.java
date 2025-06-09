@@ -167,6 +167,8 @@ public class Main {
             if (command.startsWith("echo ")) {
                 String echoOutput = handleEcho(command.substring(5).trim());
                 writer.write(echoOutput + "\n");
+            } else if (command.startsWith("cat ")) {
+                handleCatForRedirection(command.substring(4).trim(), writer);
             } else {
                 executeExternalProgramForRedirection(command, writer);
             }
