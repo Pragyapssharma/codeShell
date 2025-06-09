@@ -193,8 +193,8 @@ public class Main {
     }
 
     private static String handleEcho(String content) {
-        if ((content.startsWith("'") && content.endsWith("'")) || 
-            (content.startsWith("\"") && content.endsWith("\""))) {
+        // Remove surrounding quotes only if both match (either '' or "")
+        if ((content.startsWith("'") && content.endsWith("'")) || (content.startsWith("\"") && content.endsWith("\""))) {
             content = content.substring(1, content.length() - 1);
         }
         return content.trim();
