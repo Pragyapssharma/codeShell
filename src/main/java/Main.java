@@ -165,11 +165,21 @@ public class Main {
                 String echoOutput = handleEcho(command.substring(5).trim());
                 printWriter.println(echoOutput);
             } else if (command.startsWith("cat ")) {
-                handleCatForRedirection(command.substring(4).trim(), printWriter);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                PrintStream ps = new PrintStream(baos);
+                PrintStream oldOut = System.out;
+                System.setOut(ps);
+
+                handleCat(command.substring(4).trim());
+
+                System.out.flush();
+                System.setOut(oldOut);
+                printWriter.print(baos.toString().trim()); // Use trim() to remove trailing newline
             } else {
                 executeExternalProgramForRedirection(command, printWriter);
             }
 
+            printWriter.flush(); // Ensure immediate writing
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
@@ -210,8 +220,8 @@ public class Main {
         for (String fileName : fileNames) {
             File file = new File(fileName);
             if (!file.exists()) {
-                System.out.println("cat: " + fileName + ": No such file or directory");
-                continue;
+                System.out.print("cat: " + fileName + ": No such file or directory"); // Use print() instead of println()
+                return; // Exit the loop if a file does not exist
             }
 
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
@@ -220,7 +230,7 @@ public class Main {
                     System.out.println(line);
                 }
             } catch (IOException e) {
-                System.out.println("Error reading file: " + fileName);
+                System.out.print("Error reading file: " + fileName);
             }
         }
     }
