@@ -193,7 +193,7 @@ public class Main {
     }
 
     private static String handleEcho(String content) {
-        return content.replaceAll("^['\"]|['\"]$", "");
+        return content.replaceAll("^['\"]|['\"]$", "").trim();
     }
 
 
