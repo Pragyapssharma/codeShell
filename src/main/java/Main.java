@@ -166,13 +166,17 @@ public class Main {
             } else if (command.startsWith("cat ")) {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 PrintStream ps = new PrintStream(baos);
+                PrintStream oldErr = System.err;
                 PrintStream oldOut = System.out;
                 System.setOut(ps);
+                System.setErr(ps);
 
                 handleCat(command.substring(4).trim());
 
                 System.out.flush();
+                System.err.flush();
                 System.setOut(oldOut);
+                System.setErr(oldErr);
                 writer.write(baos.toString());
             } else {
                 ProcessBuilder processBuilder = new ProcessBuilder(command.split("\\s+"));
