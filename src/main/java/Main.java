@@ -165,21 +165,11 @@ public class Main {
                 String echoOutput = handleEcho(command.substring(5).trim());
                 printWriter.println(echoOutput);
             } else if (command.startsWith("cat ")) {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                PrintStream ps = new PrintStream(baos);
-                PrintStream oldOut = System.out;
-                System.setOut(ps);
-
-                handleCat(command.substring(4).trim());
-
-                System.out.flush();
-                System.setOut(oldOut);
-                printWriter.print(baos.toString().trim()); // Use trim() to remove trailing newline
+                handleCatForRedirection(command.substring(4).trim(), printWriter);
             } else {
                 executeExternalProgramForRedirection(command, printWriter);
             }
 
-            printWriter.flush(); // Ensure immediate writing
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
@@ -242,7 +232,6 @@ public class Main {
             File file = new File(fileName);
             if (!file.exists()) {
                 writer.println("cat: " + fileName + ": No such file or directory");
-                writer.flush();  // Ensure immediate writing
                 continue;
             }
 
@@ -257,24 +246,25 @@ public class Main {
         }
     }
     
-    private static void handleCat(String content) {
-        List<String> fileNames = Arrays.asList(content.split("\\s+"));
+    private static void executeExternalProgramForRedirection(String input, PrintWriter writer) {
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder(input.split("\\s+"));
+            
+            processBuilder.redirectErrorStream(true);
 
-        for (String fileName : fileNames) {
-            File file = new File(fileName);
-            if (!file.exists()) {
-                System.out.print("cat: " + fileName + ": No such file or directory"); // Use print() instead of println()
-                return; // Exit the loop if a file does not exist
-            }
+            Process process = processBuilder.start();
 
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
+                    writer.println(line);
                 }
-            } catch (IOException e) {
-                System.out.print("Error reading file: " + fileName);
+
+                process.waitFor();
+                writer.flush();
             }
+        } catch (IOException | InterruptedException e) {
+            writer.println("Error executing command: " + e.getMessage());
         }
     }
     
