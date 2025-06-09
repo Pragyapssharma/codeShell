@@ -164,9 +164,7 @@ public class Main {
                 String echoOutput = handleEcho(command.substring(5).trim());
                 writer.write(echoOutput + "\n");
             } else if (command.startsWith("cat ")) {
-                PrintStream ps = new PrintStream(new OutputStreamWriter(writer));
-                handleCat(command.substring(4).trim(), ps);
-                ps.flush();
+                handleCat(command.substring(4).trim(), writer);
             } else {
                 ProcessBuilder processBuilder = new ProcessBuilder(command.split("\\s+"));
                 processBuilder.redirectErrorStream(true);
@@ -216,23 +214,23 @@ public class Main {
         return content;
     }
 
-    private static void handleCat(String content, PrintStream out) {
+    private static void handleCat(String content, Writer writer) throws IOException {
         List<String> fileNames = Arrays.asList(content.split("\\s+"));
 
         for (String fileName : fileNames) {
             File file = new File(fileName);
             if (!file.exists()) {
-                out.println("cat: " + fileName + ": No such file or directory");
+                writer.write("cat: " + fileName + ": No such file or directory\n");
                 continue;
             }
 
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    out.println(line);
+                    writer.write(line + "\n");
                 }
             } catch (IOException e) {
-                out.println("Error reading file: " + fileName);
+                writer.write("Error reading file: " + fileName + "\n");
             }
         }
     }
@@ -327,7 +325,11 @@ public class Main {
         } else if (input.startsWith("echo ")) {
             System.out.println(handleEcho(input.substring(5).trim()));
         } else if (input.startsWith("cat ")) {
-            handleCat(input.substring(4).trim(), System.out);
+            try {
+                handleCat(input.substring(4).trim(), new OutputStreamWriter(System.out));
+            } catch (IOException e) {
+                System.out.println("Error handling cat command: " + e.getMessage());
+            }
         } else if (input.startsWith("cd ")) {
             changeDirectory(input.substring(3).trim());
         } else if (input.equals("pwd")) {
