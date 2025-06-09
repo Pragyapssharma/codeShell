@@ -164,20 +164,9 @@ public class Main {
                 String echoOutput = handleEcho(command.substring(5).trim());
                 writer.write(echoOutput + "\n");
             } else if (command.startsWith("cat ")) {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                PrintStream ps = new PrintStream(baos);
-                PrintStream oldErr = System.err;
-                PrintStream oldOut = System.out;
-                System.setOut(ps);
-                System.setErr(ps);
-
-                handleCat(command.substring(4).trim());
-
-                System.out.flush();
-                System.err.flush();
-                System.setOut(oldOut);
-                System.setErr(oldErr);
-                writer.write(baos.toString());
+                PrintStream ps = new PrintStream(new OutputStreamWriter(writer));
+                handleCat(command.substring(4).trim(), ps);
+                ps.flush();
             } else {
                 ProcessBuilder processBuilder = new ProcessBuilder(command.split("\\s+"));
                 processBuilder.redirectErrorStream(true);
@@ -227,24 +216,23 @@ public class Main {
         return content;
     }
 
-
-    private static void handleCat(String content) {
+    private static void handleCat(String content, PrintStream out) {
         List<String> fileNames = Arrays.asList(content.split("\\s+"));
 
         for (String fileName : fileNames) {
             File file = new File(fileName);
             if (!file.exists()) {
-                System.out.print("cat: " + fileName + ": No such file or directory\n");
+                out.println("cat: " + fileName + ": No such file or directory");
                 continue;
             }
 
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
+                    out.println(line);
                 }
             } catch (IOException e) {
-                System.out.print("Error reading file: " + fileName + "\n");
+                out.println("Error reading file: " + fileName);
             }
         }
     }
@@ -339,7 +327,7 @@ public class Main {
         } else if (input.startsWith("echo ")) {
             System.out.println(handleEcho(input.substring(5).trim()));
         } else if (input.startsWith("cat ")) {
-            handleCat(input.substring(4).trim());
+            handleCat(input.substring(4).trim(), System.out);
         } else if (input.startsWith("cd ")) {
             changeDirectory(input.substring(3).trim());
         } else if (input.equals("pwd")) {
