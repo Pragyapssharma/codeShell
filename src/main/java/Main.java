@@ -173,9 +173,6 @@ public class Main {
                     path = currentDirectory;
                 }
                 File directory = new File(path);
-                if (!directory.isAbsolute()) {
-                    directory = new File(currentDirectory, path);
-                }
                 String[] files = directory.list();
                 if (files != null) {
                     Arrays.sort(files);
