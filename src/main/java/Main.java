@@ -231,9 +231,8 @@ public class Main {
         for (String fileName : fileNames) {
             File file = new File(fileName);
             if (!file.exists()) {
-                // Simulating shell behavior: Redirect errors correctly
                 writer.println("cat: " + fileName + ": No such file or directory");
-                writer.flush(); // Ensure immediate writing
+                writer.flush();  // Ensure immediate writing
                 continue;
             }
 
