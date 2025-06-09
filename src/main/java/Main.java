@@ -166,30 +166,18 @@ public class Main {
             } else if (command.startsWith("cat ")) {
                 handleCat(command.substring(4).trim(), writer);
             } else if (command.startsWith("ls")) {
-                String[] lsCommandParts = command.split("\\s+");
-                String dirPath = currentDirectory;
-                boolean onePerLine = false;
-                for (String part : lsCommandParts) {
-                    if (part.equals("-1")) {
-                        onePerLine = true;
-                    } else if (!part.equals("ls")) {
-                        dirPath = part;
-                    }
+                String lsCommand = command.substring(3).trim();
+                File directory;
+                if (lsCommand.isEmpty()) {
+                    directory = new File(currentDirectory);
+                } else {
+                    directory = new File(currentDirectory, lsCommand);
                 }
-                File directory = new File(dirPath);
                 String[] files = directory.list();
                 if (files != null) {
                     Arrays.sort(files);
                     for (String file : files) {
-                        writer.write(file);
-                        if (onePerLine) {
-                            writer.write("\n");
-                        } else {
-                            writer.write(" ");
-                        }
-                    }
-                    if (!onePerLine) {
-                        writer.write("\n");
+                        writer.write(file + "\n");
                     }
                 }
             } else {
