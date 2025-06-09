@@ -166,8 +166,32 @@ public class Main {
             } else if (command.startsWith("cat ")) {
                 handleCat(command.substring(4).trim(), writer);
             } else if (command.startsWith("ls")) {
-                String lsOutput = getLsOutput(command);
-                writer.write(lsOutput);
+                String[] lsCommandParts = command.split("\\s+");
+                String dirPath = currentDirectory;
+                boolean onePerLine = false;
+                for (String part : lsCommandParts) {
+                    if (part.equals("-1")) {
+                        onePerLine = true;
+                    } else if (!part.equals("ls")) {
+                        dirPath = part;
+                    }
+                }
+                File directory = new File(dirPath);
+                String[] files = directory.list();
+                if (files != null) {
+                    Arrays.sort(files);
+                    for (String file : files) {
+                        writer.write(file);
+                        if (onePerLine) {
+                            writer.write("\n");
+                        } else {
+                            writer.write(" ");
+                        }
+                    }
+                    if (!onePerLine) {
+                        writer.write("\n");
+                    }
+                }
             } else {
                 ProcessBuilder processBuilder = new ProcessBuilder(command.split("\\s+"));
                 processBuilder.redirectErrorStream(true);
@@ -191,7 +215,13 @@ public class Main {
     
     private static String getLsOutput(String command) {
         StringBuilder output = new StringBuilder();
-        File directory = new File(currentDirectory);
+        String dirPath = currentDirectory;
+        if (command.contains("/")) {
+            dirPath = command.substring(command.indexOf("/") + 1).trim();
+        } else if (!command.equals("ls") && !command.equals("ls -1")) {
+            dirPath = command.substring(3).trim();
+        }
+        File directory = new File(dirPath);
         String[] files = directory.list();
         if (files != null) {
             Arrays.sort(files);
