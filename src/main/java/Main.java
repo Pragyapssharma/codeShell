@@ -254,11 +254,11 @@ public class Main {
             BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
             String line;
-            while ((line = reader.readLine()) != null) {
+            while ((line = errorReader.readLine()) != null) {
                 writer.write(line + "\n");
             }
 
-            while ((line = errorReader.readLine()) != null) {
+            while ((line = reader.readLine()) != null) {
                 writer.write(line + "\n");
             }
 
