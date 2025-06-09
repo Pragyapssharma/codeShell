@@ -165,7 +165,10 @@ public class Main {
             } else if (command.startsWith("cat ")) {
                 handleCatForRedirection(command.substring(4).trim(), writer);
             } else if (command.startsWith("ls")) {
-                String path = command.replace("ls", "").replace("-1", "").trim();
+                String path = command.replaceFirst("ls", "").trim();
+                if (path.startsWith("-1 ")) {
+                    path = path.replaceFirst("-1 ", "").trim();
+                }
                 if (path.isEmpty()) {
                     path = currentDirectory;
                 } else if (!path.startsWith("/")) {
