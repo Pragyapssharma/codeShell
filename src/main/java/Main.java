@@ -288,6 +288,7 @@ public class Main {
             process.waitFor();
             outputThread.join();
             errorThread.join();
+            writer.flush();
         } catch (IOException | InterruptedException e) {
             try {
                 writer.write("Error executing command: " + e.getMessage() + "\n");
