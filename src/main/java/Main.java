@@ -158,12 +158,11 @@ public class Main {
         String command = parts[0].trim();
         String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
-        try (FileWriter writer = new FileWriter(outputFile);
-             PrintWriter printWriter = new PrintWriter(writer)) {
+        try (FileWriter writer = new FileWriter(outputFile)) {
             
             if (command.startsWith("echo ")) {
                 String echoOutput = handleEcho(command.substring(5).trim());
-                printWriter.println(echoOutput);
+                writer.write(echoOutput + "\n");
             } else if (command.startsWith("cat ")) {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 PrintStream ps = new PrintStream(baos);
@@ -174,13 +173,24 @@ public class Main {
 
                 System.out.flush();
                 System.setOut(oldOut);
-                printWriter.print(baos.toString().trim()); // Use trim() to remove trailing newline
+                writer.write(baos.toString());
             } else {
-                executeExternalProgramForRedirection(command, printWriter);
+                ProcessBuilder processBuilder = new ProcessBuilder(command.split("\\s+"));
+                processBuilder.redirectErrorStream(true);
+                Process process = processBuilder.start();
+
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        writer.write(line + "\n");
+                    }
+
+                    process.waitFor();
+                }
             }
 
-            printWriter.flush(); // Ensure immediate writing
-        } catch (IOException e) {
+            writer.flush(); // Ensure immediate writing
+        } catch (IOException | InterruptedException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
     }
@@ -220,8 +230,8 @@ public class Main {
         for (String fileName : fileNames) {
             File file = new File(fileName);
             if (!file.exists()) {
-                System.out.print("cat: " + fileName + ": No such file or directory"); // Use print() instead of println()
-                return; // Exit the loop if a file does not exist
+                System.out.print("cat: " + fileName + ": No such file or directory\n");
+                continue;
             }
 
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
@@ -230,7 +240,7 @@ public class Main {
                     System.out.println(line);
                 }
             } catch (IOException e) {
-                System.out.print("Error reading file: " + fileName);
+                System.out.print("Error reading file: " + fileName + "\n");
             }
         }
     }
