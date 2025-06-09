@@ -161,7 +161,10 @@ public class Main {
         try (FileWriter writer = new FileWriter(outputFile);
              PrintWriter printWriter = new PrintWriter(writer)) {
             
-            if (command.startsWith("cat ")) {
+            if (command.startsWith("echo ")) {
+                String echoOutput = handleEcho(command.substring(5).trim());
+                printWriter.println(echoOutput);
+            } else if (command.startsWith("cat ")) {
                 handleCatForRedirection(command.substring(4).trim(), printWriter);
             } else {
                 executeExternalProgramForRedirection(command, printWriter);
@@ -193,11 +196,11 @@ public class Main {
     }
 
     private static String handleEcho(String content) {
-        // Remove surrounding quotes only if both match (either '' or "")
+        // Remove surrounding quotes if both are the same type (single or double)
         if ((content.startsWith("'") && content.endsWith("'")) || (content.startsWith("\"") && content.endsWith("\""))) {
             content = content.substring(1, content.length() - 1);
         }
-        return content.trim();
+        return content;
     }
 
 
