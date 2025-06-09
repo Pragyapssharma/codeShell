@@ -154,24 +154,19 @@ public class Main {
     }
     
     private static void executeCommandWithRedirection(String input) {
-        String[] parts;
-        if (input.contains(" 1> ")) {
-            parts = input.split(" 1> ");
-        } else {
-            parts = input.split(" > ");
-        }
+        String[] parts = input.contains(" 1> ") ? input.split(" 1> ") : input.split(" > ");
         String command = parts[0].trim();
         String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
-        try (FileWriter writer = new FileWriter(outputFile)) {
-            if (command.startsWith("echo ")) {
-                String echoOutput = handleEcho(command.substring(5).trim());
-                writer.write(echoOutput + "\n");
-            } else if (command.startsWith("cat ")) {
-                handleCatForRedirection(command.substring(4).trim(), writer);
+        try (FileWriter writer = new FileWriter(outputFile);
+             PrintWriter printWriter = new PrintWriter(writer)) {
+            
+            if (command.startsWith("cat ")) {
+                handleCatForRedirection(command.substring(4).trim(), printWriter);
             } else {
-                executeExternalProgramForRedirection(command, writer);
+                executeExternalProgramForRedirection(command, printWriter);
             }
+
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
@@ -223,32 +218,28 @@ public class Main {
         }
     }
     
-    private static void handleCatForRedirection(String content, FileWriter writer) {
+    private static void handleCatForRedirection(String content, PrintWriter writer) {
         List<String> fileNames = Arrays.asList(content.split("\\s+"));
 
         for (String fileName : fileNames) {
             File file = new File(fileName);
             if (!file.exists()) {
-                try {
-                    writer.write("cat: " + fileName + ": No such file or directory\n");
-                } catch (IOException e) {
-                    System.out.println("Error writing to file: " + e.getMessage());
-                }
+                writer.println("cat: " + fileName + ": No such file or directory");
                 continue;
             }
 
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    writer.write(line + "\n");
+                    writer.println(line);
                 }
             } catch (IOException e) {
-                System.out.println("Error reading file: " + fileName);
+                writer.println("Error reading file: " + fileName);
             }
         }
     }
     
-    private static void executeExternalProgramForRedirection(String input, FileWriter writer) {
+    private static void executeExternalProgramForRedirection(String input, PrintWriter writer) {
         try {
             ProcessBuilder processBuilder = new ProcessBuilder(input.split("\\s+"));
             processBuilder.redirectErrorStream(true);
@@ -265,11 +256,7 @@ public class Main {
                 writer.flush();
             }
         } catch (IOException | InterruptedException e) {
-            try {
-                writer.write("Error executing command: " + e.getMessage() + "\n");
-            } catch (IOException ex) {
-                System.out.println("Error writing to file: " + ex.getMessage());
-            }
+            writer.write("Error executing command: " + e.getMessage() + "\n");
         }
     }
     
