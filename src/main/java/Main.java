@@ -158,47 +158,33 @@ public class Main {
         String command = parts[0].trim();
         String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
-        try (FileWriter writer = new FileWriter(outputFile)) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(outputFile))) {
             if (command.startsWith("echo ")) {
                 String echoOutput = handleEcho(command.substring(5).trim());
-                writer.write(echoOutput + "\n");
+                writer.println(echoOutput);
             } else if (command.startsWith("cat ")) {
-                handleCat(command.substring(4).trim(), writer);
+                handleCatForRedirection(command.substring(4).trim(), writer);
             } else if (command.startsWith("ls")) {
-                String path;
-                if (command.trim().equals("ls")) {
+                String path = command.replace("ls", "").replace("-1", "").trim();
+                if (path.isEmpty()) {
                     path = currentDirectory;
-                } else {
-                    path = command.replace("ls", "").trim();
+                } else if (!path.startsWith("/")) {
+                    path = currentDirectory + "/" + path;
                 }
                 File directory = new File(path);
-                if (!directory.isAbsolute()) {
-                    directory = new File(currentDirectory, path);
-                }
                 String[] files = directory.list();
                 if (files != null) {
                     Arrays.sort(files);
                     for (String file : files) {
-                        writer.write(file + "\n");
+                        writer.println(file);
                     }
                 }
             } else {
-                ProcessBuilder processBuilder = new ProcessBuilder(command.split("\\s+"));
-                processBuilder.redirectErrorStream(true);
-                Process process = processBuilder.start();
-
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        writer.write(line + "\n");
-                    }
-
-                    process.waitFor();
-                }
+                executeExternalProgramForRedirection(command, writer);
             }
 
             writer.flush(); // Ensure immediate writing
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
     }
