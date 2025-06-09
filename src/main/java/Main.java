@@ -164,13 +164,7 @@ public class Main {
         String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
         try (FileWriter writer = new FileWriter(outputFile)) {
-            if (command.startsWith("echo ")) {
-                writer.write(handleEcho(command.substring(5).trim()) + "\n");
-            } else if (command.startsWith("cat ")) {
-                handleCatForRedirection(command.substring(4).trim(), writer);
-            } else {
-                executeExternalProgramForRedirection(command, writer);
-            }
+            executeExternalProgramForRedirection(command, writer);
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
