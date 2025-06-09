@@ -165,19 +165,17 @@ public class Main {
                 writer.write(echoOutput + "\n");
             } else if (command.startsWith("cat ")) {
                 handleCat(command.substring(4).trim(), writer);
-            } else if (command.startsWith("ls -1 ")) {
-                String path = command.substring(5).trim();
-                File directory = new File(path);
-                String[] files = directory.list();
-                if (files != null) {
-                    Arrays.sort(files);
-                    for (String file : files) {
-                        writer.write(file + "\n");
-                    }
+            } else if (command.startsWith("ls")) {
+                String path;
+                if (command.trim().equals("ls")) {
+                    path = currentDirectory;
+                } else {
+                    path = command.replace("ls", "").replace("-1", "").trim();
                 }
-            } else if (command.startsWith("ls ")) {
-                String path = command.substring(3).trim();
                 File directory = new File(path);
+                if (!directory.isAbsolute()) {
+                    directory = new File(currentDirectory, path);
+                }
                 String[] files = directory.list();
                 if (files != null) {
                     Arrays.sort(files);
