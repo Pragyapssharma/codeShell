@@ -165,6 +165,22 @@ public class Main {
                 writer.write(echoOutput + "\n");
             } else if (command.startsWith("cat ")) {
                 handleCat(command.substring(4).trim(), writer);
+            } else if (command.startsWith("ls")) {
+                File directory = new File(currentDirectory);
+                String[] files = directory.list();
+                if (files != null) {
+                    Arrays.sort(files);
+                    if (command.contains("-1")) {
+                        for (String file : files) {
+                            writer.write(file + "\n");
+                        }
+                    } else {
+                        for (String file : files) {
+                            writer.write(file + " ");
+                        }
+                        writer.write("\n");
+                    }
+                }
             } else {
                 ProcessBuilder processBuilder = new ProcessBuilder(command.split("\\s+"));
                 processBuilder.redirectErrorStream(true);
