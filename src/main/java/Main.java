@@ -165,11 +165,21 @@ public class Main {
                 String echoOutput = handleEcho(command.substring(5).trim());
                 printWriter.println(echoOutput);
             } else if (command.startsWith("cat ")) {
-                handleCatForRedirection(command.substring(4).trim(), printWriter);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                PrintStream ps = new PrintStream(baos);
+                PrintStream oldOut = System.out;
+                System.setOut(ps);
+
+                handleCat(command.substring(4).trim());
+
+                System.out.flush();
+                System.setOut(oldOut);
+                printWriter.print(baos.toString().trim()); // Use trim() to remove trailing newline
             } else {
                 executeExternalProgramForRedirection(command, printWriter);
             }
 
+            printWriter.flush(); // Ensure immediate writing
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
@@ -247,25 +257,24 @@ public class Main {
         }
     }
     
-    private static void executeExternalProgramForRedirection(String input, PrintWriter writer) {
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder(input.split("\\s+"));
-            
-            processBuilder.redirectErrorStream(true);
+    private static void handleCat(String content) {
+        List<String> fileNames = Arrays.asList(content.split("\\s+"));
 
-            Process process = processBuilder.start();
+        for (String fileName : fileNames) {
+            File file = new File(fileName);
+            if (!file.exists()) {
+                System.out.print("cat: " + fileName + ": No such file or directory"); // Use print() instead of println()
+                return; // Exit the loop if a file does not exist
+            }
 
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    writer.println(line);
+                    System.out.println(line);
                 }
-
-                process.waitFor();
-                writer.flush();
+            } catch (IOException e) {
+                System.out.print("Error reading file: " + fileName);
             }
-        } catch (IOException | InterruptedException e) {
-            writer.println("Error executing command: " + e.getMessage());
         }
     }
     
