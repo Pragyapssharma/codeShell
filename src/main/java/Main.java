@@ -159,7 +159,6 @@ public class Main {
         String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
         try (FileWriter writer = new FileWriter(outputFile)) {
-            
             if (command.startsWith("echo ")) {
                 String echoOutput = handleEcho(command.substring(5).trim());
                 writer.write(echoOutput + "\n");
@@ -170,7 +169,7 @@ public class Main {
                 if (command.trim().equals("ls")) {
                     path = currentDirectory;
                 } else {
-                    path = command.replace("ls", "").replace("-1", "").trim();
+                    path = command.replace("ls", "").trim();
                 }
                 File directory = new File(path);
                 if (!directory.isAbsolute()) {
@@ -378,8 +377,24 @@ public class Main {
             changeDirectory(input.substring(3).trim());
         } else if (input.equals("pwd")) {
             System.out.println(currentDirectory);
-        } else if (input.equals("ls")) {
-            executeLsCommand(input);
+        } else if (input.startsWith("ls")) {
+            String path;
+            if (input.trim().equals("ls")) {
+                path = currentDirectory;
+            } else {
+                path = input.replace("ls", "").trim();
+            }
+            File directory = new File(path);
+            if (!directory.isAbsolute()) {
+                directory = new File(currentDirectory, path);
+            }
+            String[] files = directory.list();
+            if (files != null) {
+                Arrays.sort(files);
+                for (String file : files) {
+                    System.out.println(file);
+                }
+            }
         } else {
             executeExternalProgram(input);
         }
