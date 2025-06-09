@@ -166,21 +166,8 @@ public class Main {
             } else if (command.startsWith("cat ")) {
                 handleCat(command.substring(4).trim(), writer);
             } else if (command.startsWith("ls")) {
-                File directory = new File(currentDirectory);
-                String[] files = directory.list();
-                if (files != null) {
-                    Arrays.sort(files);
-                    if (command.contains("-1")) {
-                        for (String file : files) {
-                            writer.write(file + "\n");
-                        }
-                    } else {
-                        for (String file : files) {
-                            writer.write(file + " ");
-                        }
-                        writer.write("\n");
-                    }
-                }
+                String lsOutput = getLsOutput(command);
+                writer.write(lsOutput);
             } else {
                 ProcessBuilder processBuilder = new ProcessBuilder(command.split("\\s+"));
                 processBuilder.redirectErrorStream(true);
@@ -200,6 +187,26 @@ public class Main {
         } catch (IOException | InterruptedException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
+    }
+    
+    private static String getLsOutput(String command) {
+        StringBuilder output = new StringBuilder();
+        File directory = new File(currentDirectory);
+        String[] files = directory.list();
+        if (files != null) {
+            Arrays.sort(files);
+            if (command.contains("-1")) {
+                for (String file : files) {
+                    output.append(file).append("\n");
+                }
+            } else {
+                for (String file : files) {
+                    output.append(file).append(" ");
+                }
+                output.append("\n");
+            }
+        }
+        return output.toString();
     }
     
     private static void changeDirectory(String newPath) {
