@@ -154,39 +154,66 @@ public class Main {
     }
     
     private static void executeCommandWithRedirection(String input) {
-        String[] parts = input.contains(" 1> ") ? input.split(" 1> ") : input.split(" > ");
+        String[] parts;
+        if (input.contains(" 1> ")) {
+            parts = input.split(" 1> ");
+        } else {
+            parts = input.split(" > ");
+        }
         String command = parts[0].trim();
         String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
-        try (PrintWriter writer = new PrintWriter(new FileWriter(outputFile))) {
-            if (command.startsWith("echo ")) {
-                String echoOutput = handleEcho(command.substring(5).trim());
-                writer.println(echoOutput);
-            } else if (command.startsWith("cat ")) {
-                handleCatForRedirection(command.substring(4).trim(), writer);
-            } else if (command.startsWith("ls")) {
-                String path = command.replaceFirst("ls", "").trim();
-                if (path.startsWith("-1 ")) {
-                    path = path.replaceFirst("-1 ", "").trim();
-                }
-                if (path.isEmpty()) {
-                    path = currentDirectory;
-                } else if (!path.startsWith("/")) {
-                    path = currentDirectory + "/" + path;
-                }
-                File directory = new File(path);
-                String[] files = directory.list();
-                if (files != null) {
-                    Arrays.sort(files);
-                    for (String file : files) {
-                        writer.println(file);
-                    }
-                }
-            } else {
-                executeExternalProgramForRedirection(command, writer);
-            }
+        File logFile = new File(outputFile);
+        File path = logFile.getParentFile();
+        if (!(path.exists())) {
+            path.mkdirs();
+        } else if (logFile.exists()) {
+            logFile.delete();
+        }
 
-            writer.flush(); // Ensure immediate writing
+        try {
+            logFile.createNewFile();
+            try (PrintWriter writer = new PrintWriter(new FileWriter(logFile))) {
+                // Redirect output stream
+                PrintStream oldOut = System.out;
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                PrintStream ps = new PrintStream(baos);
+                System.setOut(ps);
+
+                if (command.startsWith("echo ")) {
+                    System.out.println(handleEcho(command.substring(5).trim()));
+                } else if (command.startsWith("cat ")) {
+                    handleCatForRedirection(command.substring(4).trim(), new PrintWriter(new OutputStreamWriter(new ByteArrayOutputStream())));
+                    ByteArrayOutputStream catBaos = new ByteArrayOutputStream();
+                    handleCat(command.substring(4).trim(), new OutputStreamWriter(catBaos));
+                    writer.write(catBaos.toString());
+                } else if (command.startsWith("ls")) {
+                    String lsPath;
+                    if (command.trim().equals("ls")) {
+                        lsPath = currentDirectory;
+                    } else {
+                        lsPath = command.replace("ls", "").trim();
+                    }
+                    File directory = new File(lsPath);
+                    if (!directory.isAbsolute()) {
+                        directory = new File(currentDirectory, lsPath);
+                    }
+                    String[] files = directory.list();
+                    if (files != null) {
+                        Arrays.sort(files);
+                        for (String file : files) {
+                            writer.println(file);
+                        }
+                    }
+                } else {
+                    executeExternalProgramForRedirection(command, writer);
+                }
+
+                System.out.flush();
+                System.setOut(oldOut);
+                writer.write(baos.toString());
+                writer.close();
+            }
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
