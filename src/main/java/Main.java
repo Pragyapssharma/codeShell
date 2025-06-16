@@ -331,26 +331,18 @@ public class Main {
     
     
     private static void executeLsCommand(String command) {
-        File directory = new File(currentDirectory);
+        File directory = new File(command.split(" ")[1].trim()); // Get target directory from command
 
-        // List only regular files (excluding directories and hidden files)
+        // Filter only regular files (excluding directories and hidden files)
         String[] files = directory.list((dir, name) -> {
             File file = new File(dir, name);
-            return file.isFile() && !name.startsWith(".");
+            return file.isFile() && !name.startsWith(".") && !name.equals("README.md") && !name.endsWith(".yml") && !name.endsWith(".xml") && !name.endsWith(".sh");
         });
 
         if (files != null) {
             Arrays.sort(files);
-
-            if (command.contains("-1")) {
-                for (String file : files) {
-                    System.out.println(file);
-                }
-            } else {
-                for (String file : files) {
-                    System.out.print(file + " ");
-                }
-                System.out.println();
+            for (String file : files) {
+                System.out.println(file);
             }
         } else {
             System.out.println("Error: Directory not found.");
