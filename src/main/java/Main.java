@@ -213,7 +213,28 @@ public class Main {
                             System.out.println(file);
                         }
                     }
-                } else {
+            } else if (command.startsWith("cat ")) {
+                try {
+                    String filePath = command.substring(4).trim();
+                    File file = new File(filePath);
+                    if (file.isAbsolute()) {
+                        if (file.exists() && file.isFile()) {
+                            Files.readAllLines(file.toPath()).forEach(System.out::println);
+                        } else {
+                            System.out.println("cat: " + filePath + ": No such file or directory");
+                        }
+                    } else {
+                        File absoluteFile = new File(currentDirectory, filePath);
+                        if (absoluteFile.exists() && absoluteFile.isFile()) {
+                            Files.readAllLines(absoluteFile.toPath()).forEach(System.out::println);
+                        } else {
+                            System.out.println("cat: " + filePath + ": No such file or directory");
+                        }
+                    }
+                } catch (IOException e) {
+                    System.out.println("Error handling cat command: " + e.getMessage());
+                }
+            }else {
                     try {
                         Process process = Runtime.getRuntime().exec(command);
                         BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
