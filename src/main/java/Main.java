@@ -189,12 +189,6 @@ public class Main {
 
                 if (command.startsWith("echo ")) {
                     System.out.println(handleEcho(command.substring(5).trim()));
-                } else if (command.startsWith("cat ")) {
-                    try {
-                        handleCat(command.substring(4).trim(), new OutputStreamWriter(System.out));
-                    } catch (IOException e) {
-                        System.out.println("Error handling cat command: " + e.getMessage());
-                    }
                 } else if (command.startsWith("ls")) {
                     String pathStr;
                     if (command.trim().equals("ls") || command.trim().equals("ls -1")) {
@@ -209,8 +203,15 @@ public class Main {
                     String[] files = directory.list();
                     if (files != null) {
                         Arrays.sort(files);
-                        for (String file : files) {
-                            System.out.println(file);
+                        if (command.contains("-1")) {
+                            for (String file : files) {
+                                System.out.println(file);
+                            }
+                        } else {
+                            for (String file : files) {
+                                System.out.print(file + " ");
+                            }
+                            System.out.println();
                         }
                     }
             } else if (command.startsWith("cat ")) {
@@ -509,7 +510,9 @@ public class Main {
 
 
     private static void executeCommand(String input) {
-        if (input.startsWith("echo ")) {
+    	if (input.contains(">") || input.contains("1>")) {
+            executeCommandWithRedirection(input);
+        } else if (input.startsWith("echo ")) {
             System.out.println(handleEcho(input.substring(5).trim()));
         } else if (input.startsWith("cat ")) {
             try {
