@@ -332,7 +332,12 @@ public class Main {
     
     private static void executeLsCommand(String command) {
         File directory = new File(currentDirectory);
-        String[] files = directory.list((dir, name) -> !name.startsWith(".")); // Filter out hidden files
+
+        // List only regular files (excluding directories and hidden files)
+        String[] files = directory.list((dir, name) -> {
+            File file = new File(dir, name);
+            return file.isFile() && !name.startsWith(".");
+        });
 
         if (files != null) {
             Arrays.sort(files);
