@@ -198,10 +198,10 @@ public class Main {
                 }
             } else if (command.startsWith("ls")) {
                 String pathStr;
-                if (command.trim().equals("ls")) {
+                if (command.trim().equals("ls") || command.trim().equals("ls -1")) {
                     pathStr = currentDirectory;
                 } else {
-                    pathStr = command.replace("ls", "").trim();
+                    pathStr = command.replace("ls", "").replace("-1", "").trim();
                 }
                 File directory = new File(pathStr);
                 if (!directory.isAbsolute()) {
@@ -216,7 +216,7 @@ public class Main {
                         }
                     } else {
                         for (String file : files) {
-                            System.out.print(file + " ");
+                            System.out.print(file);
                         }
                         System.out.println();
                     }
