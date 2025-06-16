@@ -232,7 +232,10 @@ public class Main {
 
             System.out.flush();
             System.setOut(oldOut);
-            Files.write(logFile.toPath(), baos.toString().getBytes());
+            String output = baos.toString().trim();
+            if (!output.isEmpty()) {
+                Files.write(logFile.toPath(), (output + System.lineSeparator()).getBytes());
+            }
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
