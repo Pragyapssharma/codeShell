@@ -183,16 +183,9 @@ public class Main {
 
         try {
             logFile.createNewFile();
-            try (PrintWriter writer = new PrintWriter(new FileWriter(logFile))) {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                PrintStream ps = new PrintStream(baos);
-                PrintStream oldOut = System.out;
-                System.setOut(ps);
-
-                executeCommandWithoutRedirection(command);
-
-                System.out.flush();
-                System.setOut(oldOut);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            executeCommandWithoutRedirection(command, baos);
+            try (FileWriter writer = new FileWriter(logFile)) {
                 writer.write(baos.toString());
             }
         } catch (IOException e) {
@@ -200,7 +193,11 @@ public class Main {
         }
     }
     
-    private static void executeCommandWithoutRedirection(String input) {
+    private static void executeCommandWithoutRedirection(String input, ByteArrayOutputStream baos) {
+        PrintStream oldOut = System.out;
+        PrintStream ps = new PrintStream(baos);
+        System.setOut(ps);
+
         if (input.startsWith("echo ")) {
             System.out.println(handleEcho(input.substring(5).trim()));
         } else if (input.startsWith("cat ")) {
@@ -232,8 +229,23 @@ public class Main {
                 }
             }
         } else {
-            executeExternalProgram(input);
+            try {
+                Process process = Runtime.getRuntime().exec(input);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line);
+                }
+
+                process.waitFor();
+            } catch (IOException | InterruptedException e) {
+                System.out.println("Error executing command");
+            }
         }
+
+        System.out.flush();
+        System.setOut(oldOut);
     }
     
     private static String getLsOutput(String command) {
