@@ -208,11 +208,15 @@ public class Main {
                     directory = new File(currentDirectory, pathStr);
                 }
                 String[] files = directory.list();
-                if (files != null) {
-                    Arrays.sort(files);
+                if (command.contains("-1")) {
                     for (String file : files) {
                         System.out.println(file);
                     }
+                } else {
+                    for (String file : files) {
+                        System.out.print(file + " ");
+                    }
+                    System.out.println();
                 }
             } else {
                 try {
