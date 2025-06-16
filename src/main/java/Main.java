@@ -203,15 +203,8 @@ public class Main {
                     String[] files = directory.list();
                     if (files != null) {
                         Arrays.sort(files);
-                        if (command.contains("-1")) {
-                            for (String file : files) {
-                                System.out.println(file);
-                            }
-                        } else {
-                            for (String file : files) {
-                                System.out.print(file + " ");
-                            }
-                            System.out.println();
+                        for (String file : files) {
+                            System.out.println(file);
                         }
                     }
             } else if (command.startsWith("cat ")) {
@@ -250,6 +243,7 @@ public class Main {
                         System.out.println("Error executing command");
                     }
                 }
+                System.out.flush();
             }
             System.setOut(oldOut);
         } catch (IOException e) {
