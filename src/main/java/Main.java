@@ -331,21 +331,27 @@ public class Main {
     
     
     private static void executeLsCommand(String command) {
-        File directory = new File(command.split(" ")[1].trim()); // Get target directory from command
+        String[] parts = command.split(" ");
+        if (parts.length < 2) {
+            System.out.println("Error: Invalid ls command syntax.");
+            return;
+        }
 
-        // Filter only regular files (excluding directories and hidden files)
-        String[] files = directory.list((dir, name) -> {
-            File file = new File(dir, name);
-            return file.isFile() && !name.startsWith(".") && !name.equals("README.md") && !name.endsWith(".yml") && !name.endsWith(".xml") && !name.endsWith(".sh");
-        });
+        File directory = new File(parts[1].trim()); // Extract directory from `ls` command
 
+        if (!directory.exists() || !directory.isDirectory()) {
+            System.out.println("Error: Directory not found.");
+            return;
+        }
+
+        String[] files = directory.list((dir, name) -> new File(dir, name).isFile() && !name.startsWith("."));
         if (files != null) {
             Arrays.sort(files);
             for (String file : files) {
                 System.out.println(file);
             }
         } else {
-            System.out.println("Error: Directory not found.");
+            System.out.println("Error: No files found.");
         }
     }
 
