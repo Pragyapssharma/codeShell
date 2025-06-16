@@ -168,7 +168,7 @@ public class Main {
             command = parts[0].trim();
             outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
         } else {
-            parts = input.split(" >", 2);
+            parts = input.split(" > ", 2);
             command = parts[0].trim();
             outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
         }
@@ -183,58 +183,56 @@ public class Main {
 
         try {
             logFile.createNewFile();
-            try (FileWriter writer = new FileWriter(logFile)) {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                PrintStream ps = new PrintStream(baos);
-                PrintStream oldOut = System.out;
-                System.setOut(ps);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PrintStream ps = new PrintStream(baos);
+            PrintStream oldOut = System.out;
+            System.setOut(ps);
 
-                if (command.startsWith("echo ")) {
-                    System.out.println(handleEcho(command.substring(5).trim()));
-                } else if (command.startsWith("cat ")) {
-                    try {
-                        handleCat(command.substring(4).trim(), new OutputStreamWriter(System.out));
-                    } catch (IOException e) {
-                        System.out.println("Error handling cat command: " + e.getMessage());
-                    }
-                } else if (command.startsWith("ls")) {
-                    String pathStr;
-                    if (command.trim().equals("ls")) {
-                        pathStr = currentDirectory;
-                    } else {
-                        pathStr = command.replace("ls", "").trim();
-                    }
-                    File directory = new File(pathStr);
-                    if (!directory.isAbsolute()) {
-                        directory = new File(currentDirectory, pathStr);
-                    }
-                    String[] files = directory.list();
-                    if (files != null) {
-                        Arrays.sort(files);
-                        for (String file : files) {
-                            System.out.println(file);
-                        }
-                    }
+            if (command.startsWith("echo ")) {
+                System.out.println(handleEcho(command.substring(5).trim()));
+            } else if (command.startsWith("cat ")) {
+                try {
+                    handleCat(command.substring(4).trim(), new OutputStreamWriter(System.out));
+                } catch (IOException e) {
+                    System.out.println("Error handling cat command: " + e.getMessage());
+                }
+            } else if (command.startsWith("ls")) {
+                String pathStr;
+                if (command.trim().equals("ls")) {
+                    pathStr = currentDirectory;
                 } else {
-                    try {
-                        Process process = Runtime.getRuntime().exec(command);
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            System.out.println(line);
-                        }
-
-                        process.waitFor();
-                    } catch (IOException | InterruptedException e) {
-                        System.out.println("Error executing command");
+                    pathStr = command.replace("ls", "").trim();
+                }
+                File directory = new File(pathStr);
+                if (!directory.isAbsolute()) {
+                    directory = new File(currentDirectory, pathStr);
+                }
+                String[] files = directory.list();
+                if (files != null) {
+                    Arrays.sort(files);
+                    for (String file : files) {
+                        System.out.println(file);
                     }
                 }
+            } else {
+                try {
+                    Process process = Runtime.getRuntime().exec(command);
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 
-                System.out.flush();
-                System.setOut(oldOut);
-                writer.write(baos.toString().trim()); // trim() to remove any trailing newlines
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        System.out.println(line);
+                    }
+
+                    process.waitFor();
+                } catch (IOException | InterruptedException e) {
+                    System.out.println("Error executing command");
+                }
             }
+
+            System.out.flush();
+            System.setOut(oldOut);
+            Files.write(logFile.toPath(), baos.toString().getBytes());
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
