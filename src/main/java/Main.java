@@ -332,11 +332,20 @@ public class Main {
     
     private static void executeLsCommand(String command) {
         File directory = new File(currentDirectory);
-        String[] files = directory.list();
+        String[] files = directory.list((dir, name) -> !name.startsWith(".")); // Filter out hidden files
+
         if (files != null) {
             Arrays.sort(files);
-            for (String file : files) {
-                System.out.println(file);
+
+            if (command.contains("-1")) {
+                for (String file : files) {
+                    System.out.println(file);
+                }
+            } else {
+                for (String file : files) {
+                    System.out.print(file + " ");
+                }
+                System.out.println();
             }
         } else {
             System.out.println("Error: Directory not found.");
