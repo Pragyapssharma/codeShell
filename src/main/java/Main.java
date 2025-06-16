@@ -149,9 +149,10 @@ public class Main {
 
             process.waitFor();
         } catch (IOException | InterruptedException e) {
-            System.out.println("Error executing command");
+            System.out.println("Error executing command.");
         }
     }
+
     
     private static void executeCommandWithRedirection(String input) {
         String[] parts;
@@ -246,17 +247,7 @@ public class Main {
     }
     
     private static void changeDirectory(String newPath) {
-        Path newDirPath;
-
-        if ("~".equals(newPath)) {
-            String homeDir = System.getenv("HOME");
-            newDirPath = homeDir != null ? Paths.get(homeDir) : Paths.get(currentDirectory);
-        } else if (newPath.startsWith("/")) {
-            newDirPath = Paths.get(newPath); // Absolute path
-        } else {
-            newDirPath = Paths.get(currentDirectory, newPath).normalize(); // Relative path
-        }
-
+        Path newDirPath = newPath.equals("~") ? Paths.get(System.getenv("HOME")) : Paths.get(currentDirectory, newPath);
         File newDir = newDirPath.toFile();
         if (newDir.exists() && newDir.isDirectory()) {
             currentDirectory = newDirPath.toAbsolutePath().toString();
@@ -264,6 +255,7 @@ public class Main {
             System.out.println("cd: " + newPath + ": No such file or directory");
         }
     }
+
 
     private static String handleEcho(String content) {
         // Remove surrounding quotes if both are the same type (single or double)
@@ -350,70 +342,76 @@ public class Main {
             System.out.println("Error: Directory not found.");
         }
     }
+
     
-    private static String handleRedirection(String input) {
-        if (input.contains(" 1> ") || input.contains(" > ")) {
-            // Redirect output stream
-            String[] arr = input.split("( 1> )|( > )");
-            File logFile = new File(arr[arr.length - 1]);
-            File path = logFile.getParentFile();
+    private static void handleRedirection(String input) {
+        String[] parts = input.split("( 1> )|( > )");
+        if (parts.length < 2) {
+            System.out.println("Error: Invalid redirection syntax.");
+            return;
+        }
 
-            if (!(path.exists())) {
-                path.mkdirs();
-            } else if (logFile.exists()) {
-                logFile.delete();
-            }
-            
-            try {
-                logFile.createNewFile();
-                System.setOut(new PrintStream(logFile));
-            } catch (IOException e) {
-                System.out.println("Error: Could not create file for redirection.");
-            }
+        String command = parts[0].trim();
+        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
-            return arr[0];
-        } else {
+        File file = new File(outputFile);
+        if (!file.getParentFile().exists()) {
+            file.getParentFile().mkdirs();
+        }
+
+        try (PrintStream fileOut = new PrintStream(new FileOutputStream(file))) {
+            System.setOut(fileOut);
+            processCommand(command);
+        } catch (IOException e) {
+            System.out.println("Error: Unable to redirect output.");
+        } finally {
             System.setOut(stdOut);
-            return input;
         }
     }
 
-    private static void executeCommand(String input) {
-        if (input.contains(">") || input.contains("1>")) {
-            executeCommandWithRedirection(input);
-        } else if (input.startsWith("echo ")) {
-            System.out.println(handleEcho(input.substring(5).trim()));
+    private static void processCommand(String input) {
+        if (input.startsWith("echo ")) {
+            System.out.println(input.substring(5).trim());
         } else if (input.startsWith("cat ")) {
-            try {
-                handleCat(input.substring(4).trim(), new OutputStreamWriter(System.out));
-            } catch (IOException e) {
-                System.out.println("Error handling cat command: " + e.getMessage());
-            }
+            handleCat(input.substring(4).trim());
         } else if (input.startsWith("cd ")) {
             changeDirectory(input.substring(3).trim());
-        } else if (input.equals("pwd")) {
+        } else if ("pwd".equalsIgnoreCase(input)) {
             System.out.println(currentDirectory);
         } else if (input.startsWith("ls")) {
-            String path;
-            if (input.trim().equals("ls")) {
-                path = currentDirectory;
-            } else {
-                path = input.replace("ls", "").trim();
-            }
-            File directory = new File(path);
-            if (!directory.isAbsolute()) {
-                directory = new File(currentDirectory, path);
-            }
-            String[] files = directory.list();
-            if (files != null) {
-                Arrays.sort(files);
-                for (String file : files) {
-                    System.out.println(file);
-                }
-            }
+            executeLsCommand(input);
         } else {
             executeExternalProgram(input);
         }
     }
+    
+    private static void handleCat(String content) {
+        List<String> fileNames = Arrays.asList(content.split("\\s+"));
+        for (String fileName : fileNames) {
+            File file = new File(fileName);
+            if (!file.exists()) {
+                System.out.println("cat: " + fileName + ": No such file or directory");
+                continue;
+            }
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line);
+                }
+            } catch (IOException e) {
+                System.out.println("Error reading file: " + fileName);
+            }
+        }
+    }
+
+
+    private static void executeCommand(String input) {
+        if (input.contains(">") || input.contains("1>")) {
+            handleRedirection(input);
+        } else {
+            processCommand(input);
+        }
+    }
+
 
 }
