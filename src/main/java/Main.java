@@ -183,59 +183,53 @@ public class Main {
 
         try {
             logFile.createNewFile();
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PrintStream ps = new PrintStream(baos);
             PrintStream oldOut = System.out;
-            System.setOut(ps);
+            try (PrintStream ps = new PrintStream(logFile)) {
+                System.setOut(ps);
 
-            if (command.startsWith("echo ")) {
-                System.out.println(handleEcho(command.substring(5).trim()));
-            } else if (command.startsWith("cat ")) {
-                try {
-                    handleCat(command.substring(4).trim(), new OutputStreamWriter(System.out));
-                } catch (IOException e) {
-                    System.out.println("Error handling cat command: " + e.getMessage());
-                }
-            } else if (command.startsWith("ls")) {
-                String pathStr;
-                if (command.trim().equals("ls") || command.trim().equals("ls -1")) {
-                    pathStr = currentDirectory;
+                if (command.startsWith("echo ")) {
+                    System.out.println(handleEcho(command.substring(5).trim()));
+                } else if (command.startsWith("cat ")) {
+                    try {
+                        handleCat(command.substring(4).trim(), new OutputStreamWriter(System.out));
+                    } catch (IOException e) {
+                        System.out.println("Error handling cat command: " + e.getMessage());
+                    }
+                } else if (command.startsWith("ls")) {
+                    String pathStr;
+                    if (command.trim().equals("ls") || command.trim().equals("ls -1")) {
+                        pathStr = currentDirectory;
+                    } else {
+                        pathStr = command.replace("ls", "").replace("-1", "").trim();
+                    }
+                    File directory = new File(pathStr);
+                    if (!directory.isAbsolute()) {
+                        directory = new File(currentDirectory, pathStr);
+                    }
+                    String[] files = directory.list();
+                    if (files != null) {
+                        Arrays.sort(files);
+                        for (String file : files) {
+                            System.out.println(file);
+                        }
+                    }
                 } else {
-                    pathStr = command.replace("ls", "").replace("-1", "").trim();
-                }
-                File directory = new File(pathStr);
-                if (!directory.isAbsolute()) {
-                    directory = new File(currentDirectory, pathStr);
-                }
-                String[] files = directory.list();
-                if (files != null) {
-                    Arrays.sort(files);
-                    for (String file : files) {
-                        System.out.println(file);
-                    }
-                }
-            } else {
-                try {
-                    Process process = Runtime.getRuntime().exec(command);
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    try {
+                        Process process = Runtime.getRuntime().exec(command);
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        System.out.println(line);
-                    }
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            System.out.println(line);
+                        }
 
-                    process.waitFor();
-                } catch (IOException | InterruptedException e) {
-                    System.out.println("Error executing command");
+                        process.waitFor();
+                    } catch (IOException | InterruptedException e) {
+                        System.out.println("Error executing command");
+                    }
                 }
             }
-
-            System.out.flush();
             System.setOut(oldOut);
-            String output = baos.toString().trim();
-            if (!output.isEmpty()) {
-                Files.write(logFile.toPath(), (output + System.lineSeparator()).getBytes());
-            }
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
