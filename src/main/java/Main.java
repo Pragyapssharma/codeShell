@@ -25,7 +25,11 @@ public class Main {
                 System.exit(0);
             }
             
-            executeCommand(input);
+            if (input.contains(">") || input.contains("1>")) {
+                executeCommandWithRedirection(input);
+            } else {
+                executeCommand(input);
+            }
      /*       
             if (input.contains(" > ")) {
                 // redirect output stream
@@ -156,13 +160,18 @@ public class Main {
     
     private static void executeCommandWithRedirection(String input) {
         String[] parts;
+        String outputFile;
+        String command;
+
         if (input.contains(" 1> ")) {
             parts = input.split(" 1> ");
+            command = parts[0].trim();
+            outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
         } else {
-            parts = input.split(" > ");
+            parts = input.split(" >", 2);
+            command = parts[0].trim();
+            outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
         }
-        String command = parts[0].trim();
-        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
         File logFile = new File(outputFile);
         File path = logFile.getParentFile();
@@ -175,48 +184,55 @@ public class Main {
         try {
             logFile.createNewFile();
             try (PrintWriter writer = new PrintWriter(new FileWriter(logFile))) {
-                // Redirect output stream
-                PrintStream oldOut = System.out;
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 PrintStream ps = new PrintStream(baos);
+                PrintStream oldOut = System.out;
                 System.setOut(ps);
 
-                if (command.startsWith("echo ")) {
-                    System.out.println(handleEcho(command.substring(5).trim()));
-                } else if (command.startsWith("cat ")) {
-                    handleCatForRedirection(command.substring(4).trim(), new PrintWriter(new OutputStreamWriter(new ByteArrayOutputStream())));
-                    ByteArrayOutputStream catBaos = new ByteArrayOutputStream();
-                    handleCat(command.substring(4).trim(), new OutputStreamWriter(catBaos));
-                    writer.write(catBaos.toString());
-                } else if (command.startsWith("ls")) {
-                    String lsPath;
-                    if (command.trim().equals("ls")) {
-                        lsPath = currentDirectory;
-                    } else {
-                        lsPath = command.replace("ls", "").trim();
-                    }
-                    File directory = new File(lsPath);
-                    if (!directory.isAbsolute()) {
-                        directory = new File(currentDirectory, lsPath);
-                    }
-                    String[] files = directory.list();
-                    if (files != null) {
-                        Arrays.sort(files);
-                        for (String file : files) {
-                            writer.println(file);
-                        }
-                    }
-                } else {
-                    executeExternalProgramForRedirection(command, writer);
-                }
+                executeCommandWithoutRedirection(command);
 
                 System.out.flush();
                 System.setOut(oldOut);
                 writer.write(baos.toString());
-                writer.close();
             }
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
+        }
+    }
+    
+    private static void executeCommandWithoutRedirection(String input) {
+        if (input.startsWith("echo ")) {
+            System.out.println(handleEcho(input.substring(5).trim()));
+        } else if (input.startsWith("cat ")) {
+            try {
+                handleCat(input.substring(4).trim(), new OutputStreamWriter(System.out));
+            } catch (IOException e) {
+                System.out.println("Error handling cat command: " + e.getMessage());
+            }
+        } else if (input.startsWith("cd ")) {
+            changeDirectory(input.substring(3).trim());
+        } else if (input.equals("pwd")) {
+            System.out.println(currentDirectory);
+        } else if (input.startsWith("ls")) {
+            String path;
+            if (input.trim().equals("ls")) {
+                path = currentDirectory;
+            } else {
+                path = input.replace("ls", "").trim();
+            }
+            File directory = new File(path);
+            if (!directory.isAbsolute()) {
+                directory = new File(currentDirectory, path);
+            }
+            String[] files = directory.list();
+            if (files != null) {
+                Arrays.sort(files);
+                for (String file : files) {
+                    System.out.println(file);
+                }
+            }
+        } else {
+            executeExternalProgram(input);
         }
     }
     
@@ -418,10 +434,38 @@ public class Main {
 
 
     private static void executeCommand(String input) {
-        if (input.contains(">") || input.contains("1>")) {
-            handleRedirection(input);
+        if (input.startsWith("echo ")) {
+            System.out.println(handleEcho(input.substring(5).trim()));
+        } else if (input.startsWith("cat ")) {
+            try {
+                handleCat(input.substring(4).trim(), new OutputStreamWriter(System.out));
+            } catch (IOException e) {
+                System.out.println("Error handling cat command: " + e.getMessage());
+            }
+        } else if (input.startsWith("cd ")) {
+            changeDirectory(input.substring(3).trim());
+        } else if (input.equals("pwd")) {
+            System.out.println(currentDirectory);
+        } else if (input.startsWith("ls")) {
+            String path;
+            if (input.trim().equals("ls")) {
+                path = currentDirectory;
+            } else {
+                path = input.replace("ls", "").trim();
+            }
+            File directory = new File(path);
+            if (!directory.isAbsolute()) {
+                directory = new File(currentDirectory, path);
+            }
+            String[] files = directory.list();
+            if (files != null) {
+                Arrays.sort(files);
+                for (String file : files) {
+                    System.out.println(file);
+                }
+            }
         } else {
-            processCommand(input);
+            executeExternalProgram(input);
         }
     }
 
