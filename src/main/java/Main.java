@@ -207,6 +207,8 @@ public class Main {
                             System.out.println(file);
                         }
                     }
+                    System.out.flush();
+                    ps.flush();
             } else if (command.startsWith("cat ")) {
                 try {
                     String filePath = command.substring(4).trim();
