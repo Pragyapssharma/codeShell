@@ -226,6 +226,7 @@ public class Main {
                 }
             } catch (IOException e) {
                 writer.println("cat: " + fileName + ": Error reading file");
+                writer.flush();
             }
         }
 
