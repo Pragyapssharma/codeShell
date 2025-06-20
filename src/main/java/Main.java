@@ -216,16 +216,52 @@ public class Main {
             file.getParentFile().mkdirs();
         }
 
-        try {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(file))) {
+            if (command.startsWith("cat ")) {
+                // Use your Java cat handler that writes errors & contents to writer
+                handleCatForRedirection(command.substring(4).trim(), writer);
+                return;
+            } else if (command.startsWith("echo ")) {
+                // echo command with output redirected
+                String echoContent = command.substring(5).trim();
+                echoContent = handleEcho(echoContent);  // your existing method to strip quotes
+                writer.println(echoContent);
+                return;
+            }
+            // Add other internal commands with redirection if needed
+
+            // For other commands, fallback to ProcessBuilder
             ProcessBuilder builder = new ProcessBuilder("sh", "-c", command);
             builder.directory(currentDirectory.toFile());
-            builder.redirectOutput(file);                   // redirect stdout to file
-            builder.redirectError(ProcessBuilder.Redirect.to(file)); // redirect stderr to same file
+            builder.redirectOutput(file);
+            builder.redirectError(ProcessBuilder.Redirect.appendTo(file));  // append errors to same file
 
             Process process = builder.start();
             process.waitFor();
+
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
+        }
+    }
+
+    private static void handleCatForRedirection(String content, PrintWriter writer) {
+        List<String> fileNames = Arrays.asList(content.split("\\s+"));
+
+        for (String fileName : fileNames) {
+        	File file = currentDirectory.resolve(fileName).toFile();  // Respect current directory
+            if (!file.exists()) {
+                writer.println("cat: " + fileName + ": No such file or directory");
+                continue;
+            }
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    writer.println(line);
+                }
+            } catch (IOException e) {
+                writer.println("cat: " + fileName + ": Error reading file");
+            }
         }
     }
 
