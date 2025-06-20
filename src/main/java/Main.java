@@ -188,37 +188,22 @@ public class Main {
     }
     
     private static void executeCommandWithOutput(String input, PrintStream out) {
-        if (input.startsWith("echo ")) {
-            out.println(handleEcho(input.substring(5).trim()));
-        } else if (input.startsWith("cat ")) {
-            try {
-                handleCat(input.substring(4).trim(), new OutputStreamWriter(out));
-            } catch (IOException e) {
-                out.println("Error handling cat command: " + e.getMessage());
+        try {
+            ProcessBuilder builder = new ProcessBuilder("sh", "-c", input);
+            builder.directory(new File(currentDirectory));
+            Process process = builder.start();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                out.println(line);
             }
-        } else if (input.startsWith("ls")) {
-            String path = currentDirectory;
-            if (!input.trim().equals("ls")) {
-                path = input.replaceFirst("ls", "").trim();
-                File file = new File(path);
-                if (!file.isAbsolute()) {
-                    path = new File(currentDirectory, path).getAbsolutePath();
-                }
-            }
-            File directory = new File(path);
-            String[] files = directory.list();
-            if (files != null) {
-                Arrays.sort(files);
-                for (String file : files) {
-                    out.println(file);
-                }
-            }
-        } else if (input.startsWith("pwd")) {
-            out.println(currentDirectory);
-        } else {
-            executeExternalProgramForRedirection(input, new PrintWriter(out, true));
+            process.waitFor();
+        } catch (IOException | InterruptedException e) {
+            out.println("Error executing command: " + e.getMessage());
         }
     }
+
 
     private static void executeCommandWithoutRedirection(String input, PrintStream out) {
         if (input.startsWith("echo ")) {
