@@ -29,7 +29,6 @@ public class Main {
                 executeCommandWithRedirection(input);
             } else {
                 executeCommand(input);
-                stdOut.print("$ ");
             }
      /*       
             if (input.contains(" > ")) {
@@ -465,7 +464,9 @@ public class Main {
         } else {
             executeExternalProgram(input);
         }
+    	if (!input.startsWith("cd")) {
     	System.out.print("$ ");
+    	}
     }
     
 
