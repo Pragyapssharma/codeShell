@@ -451,43 +451,17 @@ public class Main {
 
 
     private static void executeCommand(String input) {
-    	if (input.startsWith("echo ")) {
-            System.out.println(handleEcho(input.substring(5).trim()));
-        } else if (input.startsWith("cat ")) {
-            try {
-                handleCat(input.substring(4).trim(), new OutputStreamWriter(System.out));
-            } catch (IOException e) {
-                System.out.println("Error handling cat command: " + e.getMessage());
-            }
-        } else if (input.startsWith("cd ")) {
-            changeDirectory(input.substring(3).trim());
-        } else if (input.equals("pwd")) {
-            System.out.println(currentDirectory);
-        } else if (input.startsWith("ls")) {
-            String path;
-            if (input.trim().equals("ls")) {
-                path = currentDirectory;
-            } else {
-                path = input.replace("ls", "").trim();
-            }
-            File directory = new File(path);
-            if (!directory.isAbsolute()) {
-                directory = new File(currentDirectory, path);
-            }
-            String[] files = directory.list();
-            if (files != null) {
-                Arrays.sort(files);
-                for (String file : files) {
-                    System.out.println(file);
-                }
-            }
-        } else {
-            executeExternalProgram(input);
+        try {
+            ProcessBuilder builder = new ProcessBuilder("sh", "-c", input);
+            builder.directory(new File(currentDirectory));
+            builder.inheritIO();  // Use parent's stdout/stderr
+            Process process = builder.start();
+            process.waitFor();
+        } catch (IOException | InterruptedException e) {
+            System.out.println("Error executing command: " + e.getMessage());
         }
-//    	if (!input.startsWith("cd")) {
-//    	System.out.print("$ ");
-//    	}
     }
+
     
 
 }
