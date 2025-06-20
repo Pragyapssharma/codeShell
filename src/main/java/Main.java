@@ -25,8 +25,7 @@ public class Main {
                 System.exit(0);
             }
             if (!handleCd(input)) {
-                executeCommand(input);
-            }
+                
 
             if (input.contains(">")) {
             	try {
@@ -38,6 +37,7 @@ public class Main {
 
             } else {
                 executeCommand(input);
+            }
             }
      /*       
             if (input.contains(" > ")) {
