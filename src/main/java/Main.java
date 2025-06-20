@@ -27,6 +27,7 @@ public class Main {
             if (input.matches(".*\\s(1?>|>)\\s.*")) {
                 try {
                     executeCommandWithRedirection(input);
+                    System.out.flush();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     System.out.println("Command execution was interrupted.");
