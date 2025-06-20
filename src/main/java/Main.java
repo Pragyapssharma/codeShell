@@ -203,9 +203,7 @@ public class Main {
     }
 
     private static void handleCatForRedirection(String content, PrintWriter writer) {
-        if (content.isEmpty()) {
-            return;
-        }
+        if (content.isEmpty()) return;
 
         List<String> fileNames = Arrays.asList(content.split("\\s+"));
 
@@ -216,8 +214,8 @@ public class Main {
             }
 
             if (!Files.exists(filePath)) {
+                // Print error to the writer (simulating stdout redirection)
                 writer.println("cat: " + fileName + ": No such file or directory");
-                writer.flush();
                 continue;
             }
 
@@ -229,9 +227,11 @@ public class Main {
             } catch (IOException e) {
                 writer.println("cat: " + fileName + ": Error reading file");
             }
-            writer.flush();
         }
+
+        writer.flush();
     }
+
 
 
 
