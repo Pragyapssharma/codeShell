@@ -28,10 +28,11 @@ public class Main {
                 try {
                     executeCommandWithRedirection(input);
                     System.out.flush();
-                    System.out.println();
+                    stdOut.print("$ ");
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     System.out.println("Command execution was interrupted.");
+                    stdOut.print("$ ");
                 }
                 continue;
             }
