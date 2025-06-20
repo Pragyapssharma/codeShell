@@ -217,6 +217,7 @@ public class Main {
             
             if (!Files.exists(filePath)) {
                 writer.println("cat: " + Paths.get(fileName).getFileName() + ": No such file or directory");
+                writer.flush();
                 continue;
             }
 
@@ -227,6 +228,7 @@ public class Main {
                 }
             } catch (IOException e) {
                 writer.println("cat: " + Paths.get(fileName).getFileName() + ": Error reading file");
+                writer.flush();
             }
         }
         writer.flush();
