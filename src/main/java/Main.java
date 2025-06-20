@@ -24,7 +24,7 @@ public class Main {
             }
 
             // Handle output redirection
-            if (input.contains(">")) {
+            if (input.matches(".*\\s(1?>|>)\\s.*")) {
                 try {
                     executeCommandWithRedirection(input);
                 } catch (InterruptedException e) {
@@ -227,6 +227,7 @@ public class Main {
                 writer.println("cat: " + fileName + ": Error reading file");
             }
         }
+        writer.flush();
     }
 
 
