@@ -13,7 +13,7 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         
         Set<String> builtins = new HashSet<>(Arrays.asList("echo", "exit", "type", "pwd", "ls", "help"));
-        
+        Main shell = new Main();
 
         while (true) {
         	stdOut.print("$ ");
@@ -24,7 +24,7 @@ public class Main {
                 scanner.close();
                 System.exit(0);
             }
-            if (!handleCd(input)) {
+            if (shell.handleCd(input)) {
                 
 
             if (input.contains(">")) {
@@ -452,7 +452,7 @@ public class Main {
         }
     }
     
-    private boolean handleCd(String input) {
+    private static boolean handleCd(String input) {
         if (input.startsWith("cd ")) {
             String[] parts = input.split("\\s+", 2);
             String dir = parts.length > 1 ? parts[1].trim() : "";
