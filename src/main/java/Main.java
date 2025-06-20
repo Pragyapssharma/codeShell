@@ -13,7 +13,7 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         
         Set<String> builtins = new HashSet<>(Arrays.asList("echo", "exit", "type", "pwd", "ls", "help"));
-        Main shell = new Main();
+        
 
         while (true) {
         	stdOut.print("$ ");
@@ -24,9 +24,8 @@ public class Main {
                 scanner.close();
                 System.exit(0);
             }
-            if (shell.handleCd(input)) {
+            
                 
-
             if (input.contains(">")) {
             	try {
                     executeCommandWithRedirection(input);
@@ -35,10 +34,12 @@ public class Main {
                     System.out.println("Command execution was interrupted.");
                 }
 
-            } else {
+            }  else if (!handleCd(input)) {
                 executeCommand(input);
             }
-            }
+            
+            
+            
      /*       
             if (input.contains(" > ")) {
                 // redirect output stream
