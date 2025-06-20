@@ -200,73 +200,35 @@ public class Main {
     }
 
     private static void executeCommandWithRedirection(String input) throws InterruptedException {
-        // Supports syntax like: command > outputfile or command 1> outputfile
-        Pattern pattern = Pattern.compile("^(.*?)\\s*(?:1?>|>)\\s*(.*?)$");
+        Pattern pattern = Pattern.compile("^(.*?)\\s*(?:1?>)\\s*(.*?)$");
         Matcher matcher = pattern.matcher(input);
+
         if (!matcher.matches()) {
             System.out.println("Invalid redirection syntax.");
             return;
         }
 
         String command = matcher.group(1).trim();
-        String outputFileStr = matcher.group(2).trim().replaceAll("^['\"]|['\"]$", "");
-        Path outputFile = currentDirectory.resolve(outputFileStr).normalize();
+        String outputFile = matcher.group(2).trim().replaceAll("^['\"]|['\"]$", "");
 
-        // Ensure parent directory exists
-        if (outputFile.getParent() != null && !Files.exists(outputFile.getParent())) {
-            try {
-                Files.createDirectories(outputFile.getParent());
-            } catch (IOException e) {
-                System.out.println("Cannot create directory for output file: " + e.getMessage());
-                return;
-            }
+        File file = new File(outputFile);
+        if (file.getParentFile() != null && !file.getParentFile().exists()) {
+            file.getParentFile().mkdirs();
         }
 
-        try (PrintWriter writer = new PrintWriter(Files.newBufferedWriter(outputFile))) {
-            // Handle builtins separately
-            if (command.startsWith("echo ")) {
-                writer.println(handleEcho(command.substring(5).trim()));
-            } else if (command.startsWith("cat ")) {
-                // Redirect cat output to file
-                List<String> files = Arrays.asList(command.substring(4).trim().split("\\s+"));
-                for (String f : files) {
-                    Path file = currentDirectory.resolve(f);
-                    if (!Files.exists(file)) {
-                        writer.println("cat: " + f + ": No such file or directory");
-                        continue;
-                    }
-                    try (BufferedReader reader = Files.newBufferedReader(file)) {
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            writer.println(line);
-                        }
-                    } catch (IOException e) {
-                        writer.println("cat: " + f + ": Error reading file");
-                    }
-                }
-            } else if ("pwd".equalsIgnoreCase(command)) {
-                writer.println(currentDirectory.toAbsolutePath().normalize());
-            } else if (command.startsWith("ls")) {
-                // Run ls and capture output
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                PrintStream ps = new PrintStream(baos);
-                executeLsCommandWithOutput(command, ps);
-                writer.print(baos.toString());
-            } else {
-                // External program with redirection
-                ProcessBuilder builder = new ProcessBuilder("sh", "-c", command);
-                builder.directory(currentDirectory.toFile());
-                builder.redirectError(ProcessBuilder.Redirect.INHERIT);
-                builder.redirectOutput(outputFile.toFile());
-                Process process = builder.start();
-                process.waitFor();
-                return; // Done, output redirected by process builder
-            }
-            writer.flush();
+        try {
+            ProcessBuilder builder = new ProcessBuilder("sh", "-c", command);
+            builder.directory(currentDirectory.toFile());
+            builder.redirectOutput(file);                   // redirect stdout to file
+            builder.redirectError(ProcessBuilder.Redirect.to(file)); // redirect stderr to same file
+
+            Process process = builder.start();
+            process.waitFor();
         } catch (IOException e) {
-            System.out.println("Error writing to output file: " + e.getMessage());
+            System.out.println("Error executing command: " + e.getMessage());
         }
     }
+
 
     private static void executeLsCommandWithOutput(String command, PrintStream out) {
         String[] tokens = command.trim().split("\\s+");
