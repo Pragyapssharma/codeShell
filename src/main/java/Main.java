@@ -464,9 +464,9 @@ public class Main {
         } else {
             executeExternalProgram(input);
         }
-    	if (!input.startsWith("cd")) {
-    	System.out.print("$ ");
-    	}
+//    	if (!input.startsWith("cd")) {
+//    	System.out.print("$ ");
+//    	}
     }
     
 
