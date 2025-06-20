@@ -214,7 +214,6 @@ public class Main {
             }
 
             if (!Files.exists(filePath)) {
-                // Print error to the writer (simulating stdout redirection)
                 writer.println("cat: " + fileName + ": No such file or directory");
                 continue;
             }
@@ -231,6 +230,7 @@ public class Main {
 
         writer.flush();
     }
+
 
 
 
