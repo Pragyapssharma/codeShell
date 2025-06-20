@@ -24,7 +24,10 @@ public class Main {
                 scanner.close();
                 System.exit(0);
             }
-            
+            if (!handleCd(input)) {
+                executeCommand(input);
+            }
+
             if (input.contains(">")) {
             	try {
                     executeCommandWithRedirection(input);
@@ -448,6 +451,31 @@ public class Main {
             }
         }
     }
+    
+    private static boolean handleCd(String input) {
+        if (input.startsWith("cd ")) {
+            String path = input.substring(3).trim();
+
+            File newDir;
+            if (path.equals("~")) {
+                newDir = new File(System.getProperty("user.home"));
+            } else {
+                newDir = new File(path);
+                if (!newDir.isAbsolute()) {
+                    newDir = new File(currentDirectory, path);
+                }
+            }
+
+            if (newDir.exists() && newDir.isDirectory()) {
+                currentDirectory = newDir.getAbsolutePath();
+            } else {
+                System.out.println("cd: " + path + ": No such file or directory");
+            }
+            return true;
+        }
+        return false;
+    }
+
 
 
     private static void executeCommand(String input) {
