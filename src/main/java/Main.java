@@ -203,22 +203,18 @@ public class Main {
     }
 
     private static void handleCatForRedirection(String content, PrintWriter writer) {
-        
-    	if (content.isEmpty()) {
-            // No files provided for cat; mimic no output or error as desired.
-            // You can leave empty or print error:
-            // writer.println("cat: missing file operand");
+        if (content.isEmpty()) {
             return;
         }
-    	
-    	List<String> fileNames = Arrays.asList(content.split("\\s+"));
+
+        List<String> fileNames = Arrays.asList(content.split("\\s+"));
 
         for (String fileName : fileNames) {
-        	Path filePath = Paths.get(fileName);
-        	if (!filePath.isAbsolute()) {
-        	    filePath = currentDirectory.resolve(fileName);
-        	}
-        	File file = filePath.toFile();
+            Path filePath = Paths.get(fileName);
+            if (!filePath.isAbsolute()) {
+                filePath = currentDirectory.resolve(fileName);
+            }
+            File file = filePath.toFile();
             if (!file.exists()) {
                 writer.println("cat: " + fileName + ": No such file or directory");
                 continue;
