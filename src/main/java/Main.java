@@ -28,6 +28,7 @@ public class Main {
                 try {
                     executeCommandWithRedirection(input);
                     System.out.flush();
+                    System.out.println();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     System.out.println("Command execution was interrupted.");
@@ -200,6 +201,7 @@ public class Main {
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
+        System.out.flush();
     }
 
     private static void handleCatForRedirection(String content, PrintWriter writer) {
