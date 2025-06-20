@@ -181,10 +181,9 @@ public class Main {
         }
 
         try {
-            // Use the shell to parse the full command (including flags, quoted paths, etc.)
             ProcessBuilder builder = new ProcessBuilder("sh", "-c", command);
-            builder.redirectOutput(logFile); // redirect stdout to file
-            builder.redirectError(ProcessBuilder.Redirect.INHERIT); // optional: redirect stderr to console
+            builder.redirectOutput(logFile);
+            builder.redirectError(ProcessBuilder.Redirect.INHERIT); // optional
             Process process = builder.start();
             process.waitFor();
         } catch (IOException e) {
