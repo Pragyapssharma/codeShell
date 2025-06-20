@@ -216,7 +216,7 @@ public class Main {
             }
             File file = filePath.toFile();
             if (!file.exists()) {
-                writer.println("cat: " + fileName + ": No such file or directory");
+                writer.println("cat: " + Paths.get(fileName).getFileName() + ": No such file or directory");
                 continue;
             }
 
@@ -226,7 +226,7 @@ public class Main {
                     writer.println(line);
                 }
             } catch (IOException e) {
-                writer.println("cat: " + fileName + ": Error reading file");
+                writer.println("cat: " + Paths.get(fileName).getFileName() + ": Error reading file");
             }
         }
         writer.flush();
