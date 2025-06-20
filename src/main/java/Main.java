@@ -163,7 +163,6 @@ public class Main {
 
     
     private static void executeCommandWithRedirection(String input) throws InterruptedException {
-        // Match command > file or command 1> file
         Pattern pattern = Pattern.compile("^(.*?)\\s*(?:1?>)\\s*(.*?)$");
         Matcher matcher = pattern.matcher(input);
 
@@ -180,12 +179,19 @@ public class Main {
             file.getParentFile().mkdirs();
         }
 
-        try (PrintStream fileOut = new PrintStream(new FileOutputStream(file))) {
-            executeCommandWithOutput(command, fileOut);
+        try {
+            ProcessBuilder builder = new ProcessBuilder("sh", "-c", command);
+            builder.directory(new File(currentDirectory));
+            builder.redirectOutput(file);                          // stdout → file
+            builder.redirectError(ProcessBuilder.Redirect.INHERIT); // stderr → terminal
+
+            Process process = builder.start();
+            process.waitFor();
         } catch (IOException e) {
-            System.out.println("Error: Unable to redirect output.");
+            System.out.println("Error executing command: " + e.getMessage());
         }
     }
+
     
     private static void executeCommandWithOutput(String input, PrintStream out) {
         try {
