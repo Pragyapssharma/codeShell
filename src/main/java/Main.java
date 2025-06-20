@@ -172,17 +172,17 @@ public class Main {
         }
 
         try (PrintWriter writer = new PrintWriter(new FileWriter(file))) {
-            if (command.startsWith("cat ")) {
-                // Use your Java cat handler that writes errors & contents to writer
-                handleCatForRedirection(command.substring(4).trim(), writer);
+        	if (command.equals("cat") || command.startsWith("cat ")) {
+                String args = command.length() == 3 ? "" : command.substring(4).trim();
+                handleCatForRedirection(args, writer);
                 return;
-            } else if (command.startsWith("echo ")) {
-                // echo command with output redirected
-            	String echoContent = handleEcho(command.substring(5).trim());
+            }
+            // Handle echo command including exact "echo" with no args
+            if (command.equals("echo") || command.startsWith("echo ")) {
+                String echoContent = command.length() == 4 ? "" : handleEcho(command.substring(5).trim());
                 writer.println(echoContent);
                 return;
             }
-            // Add other internal commands with redirection if needed
 
             // For other commands, fallback to ProcessBuilder
             ProcessBuilder builder = new ProcessBuilder("sh", "-c", command);
@@ -199,7 +199,15 @@ public class Main {
     }
 
     private static void handleCatForRedirection(String content, PrintWriter writer) {
-        List<String> fileNames = Arrays.asList(content.split("\\s+"));
+        
+    	if (content.isEmpty()) {
+            // No files provided for cat; mimic no output or error as desired.
+            // You can leave empty or print error:
+            // writer.println("cat: missing file operand");
+            return;
+        }
+    	
+    	List<String> fileNames = Arrays.asList(content.split("\\s+"));
 
         for (String fileName : fileNames) {
         	File file = currentDirectory.resolve(fileName).toFile();  // Respect current directory
