@@ -114,52 +114,7 @@ public class Main {
     }
 
     private static void executeLsCommand(String command) {
-        String[] tokens = command.trim().split("\\s+");
-
-        boolean singleColumn = false;
-        List<String> paths = new ArrayList<>();
-
-        // Parse arguments: flags and paths
-        for (int i = 1; i < tokens.length; i++) {
-            String token = tokens[i];
-            if (token.equals("-1")) {
-                singleColumn = true;
-            } else {
-                paths.add(token);
-            }
-        }
-
-        // Default to current directory if no path provided
-        if (paths.isEmpty()) {
-            paths.add(".");
-        }
-
-        for (String pathStr : paths) {
-            File directory = new File(currentDirectory.toString(), pathStr);  // currentDirectory is String
-
-            if (!directory.exists() || !directory.isDirectory()) {
-                System.out.println("ls: cannot access '" + pathStr + "': No such directory");
-                continue;
-            }
-
-            String[] files = directory.list();
-            if (files == null) {
-                System.out.println("ls: error reading directory '" + pathStr + "'");
-                continue;
-            }
-
-            Arrays.sort(files);
-            if (singleColumn) {
-                for (String file : files) {
-                    System.out.println(file);
-                }
-            } else {
-                for (String file : files) {
-                    System.out.print(file + " ");
-                }
-                System.out.println();
-            }
-        }
+        executeLsCommandWithOutput(command, System.out);
     }
 
 
@@ -223,8 +178,7 @@ public class Main {
                 return;
             } else if (command.startsWith("echo ")) {
                 // echo command with output redirected
-                String echoContent = command.substring(5).trim();
-                echoContent = handleEcho(echoContent);  // your existing method to strip quotes
+            	String echoContent = handleEcho(command.substring(5).trim());
                 writer.println(echoContent);
                 return;
             }
