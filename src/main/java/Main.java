@@ -158,7 +158,7 @@ public class Main {
     }
 
     
-    private static void executeCommandWithRedirection(String input) {
+    private static void executeCommandWithRedirection(String input) throws InterruptedException {
         String[] parts = input.split("( 1> )|( > )");
         String command = parts[0].trim();
         String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
@@ -172,14 +172,22 @@ public class Main {
         }
 
         try {
-            logFile.createNewFile();
-            PrintStream oldOut = System.out;
-            try (PrintStream ps = new PrintStream(logFile)) {
-                System.setOut(ps);
-                executeCommandWithoutRedirection(command, ps);
-                System.out.flush();
+        	logFile.createNewFile();
+            Process process = Runtime.getRuntime().exec(command);
+
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()));
+                 PrintWriter writer = new PrintWriter(logFile)) {
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    writer.println(line);
+                }
             }
-            System.setOut(oldOut);
+
+            process.waitFor();
+
+
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
