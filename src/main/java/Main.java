@@ -214,9 +214,9 @@ public class Main {
             if (!filePath.isAbsolute()) {
                 filePath = currentDirectory.resolve(fileName);
             }
-            
+
             if (!Files.exists(filePath)) {
-                writer.println("cat: " + Paths.get(fileName).getFileName() + ": No such file or directory");
+                writer.println("cat: " + fileName + ": No such file or directory");
                 writer.flush();
                 continue;
             }
@@ -227,12 +227,12 @@ public class Main {
                     writer.println(line);
                 }
             } catch (IOException e) {
-                writer.println("cat: " + Paths.get(fileName).getFileName() + ": Error reading file");
-                writer.flush();
+                writer.println("cat: " + fileName + ": Error reading file");
             }
+            writer.flush();
         }
-        writer.flush();
     }
+
 
 
     private static void executeLsCommandWithOutput(String command, PrintStream out) {
