@@ -155,7 +155,7 @@ public class Main {
     }
 
     private static void executeCommandWithRedirection(String input) throws InterruptedException {
-        Pattern pattern = Pattern.compile("^(.*?)\\s*(?:1?>)\\s*(.*?)$");
+    	Pattern pattern = Pattern.compile("^(.*?)\\s*(?:1?>|>)\\s*(.*?)$");
         Matcher matcher = pattern.matcher(input);
 
         if (!matcher.matches()) {
