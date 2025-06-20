@@ -28,11 +28,9 @@ public class Main {
                 try {
                     executeCommandWithRedirection(input);
                     System.out.flush();
-                    stdOut.print("$ ");
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     System.out.println("Command execution was interrupted.");
-                    stdOut.print("$ ");
                 }
                 continue;
             }
@@ -217,7 +215,7 @@ public class Main {
             }
 
             if (!Files.exists(filePath)) {
-                writer.println("$ ");
+            	writer.println("cat: " + fileName + ": No such file or directory");
                 writer.flush();
                 continue;
             }
