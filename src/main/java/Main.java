@@ -464,7 +464,8 @@ public class Main {
         } else {
             executeExternalProgram(input);
         }
+    	System.out.print("$ ");
     }
-
+    
 
 }
