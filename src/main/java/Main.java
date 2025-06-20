@@ -114,35 +114,55 @@ public class Main {
     }
 
     private static void executeLsCommand(String command) {
-        String[] parts = command.split("\\s+", 2);
-        Path dir = currentDirectory;
-        if (parts.length > 1) {
-            dir = currentDirectory.resolve(parts[1]).normalize();
-        }
-        if (!Files.isDirectory(dir)) {
-            System.out.println("ls: cannot access '" + dir + "': No such directory");
-            return;
-        }
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
-            List<String> files = new ArrayList<>();
-            for (Path entry : stream) {
-                files.add(entry.getFileName().toString());
+        String[] tokens = command.trim().split("\\s+");
+
+        boolean singleColumn = false;
+        List<String> paths = new ArrayList<>();
+
+        // Parse arguments: flags and paths
+        for (int i = 1; i < tokens.length; i++) {
+            String token = tokens[i];
+            if (token.equals("-1")) {
+                singleColumn = true;
+            } else {
+                paths.add(token);
             }
-            Collections.sort(files);
-            if (command.contains("-1")) {
-                for (String f : files) {
-                    System.out.println(f);
+        }
+
+        // Default to current directory if no path provided
+        if (paths.isEmpty()) {
+            paths.add(".");
+        }
+
+        for (String pathStr : paths) {
+            File directory = new File(currentDirectory.toString(), pathStr);  // currentDirectory is String
+
+            if (!directory.exists() || !directory.isDirectory()) {
+                System.out.println("ls: cannot access '" + pathStr + "': No such directory");
+                continue;
+            }
+
+            String[] files = directory.list();
+            if (files == null) {
+                System.out.println("ls: error reading directory '" + pathStr + "'");
+                continue;
+            }
+
+            Arrays.sort(files);
+            if (singleColumn) {
+                for (String file : files) {
+                    System.out.println(file);
                 }
             } else {
-                for (String f : files) {
-                    System.out.print(f + " ");
+                for (String file : files) {
+                    System.out.print(file + " ");
                 }
                 System.out.println();
             }
-        } catch (IOException e) {
-            System.out.println("ls: error reading directory");
         }
     }
+
+
 
     private static void findExecutable(String command) {
         String pathEnv = System.getenv("PATH");
@@ -249,33 +269,51 @@ public class Main {
     }
 
     private static void executeLsCommandWithOutput(String command, PrintStream out) {
-        String[] parts = command.split("\\s+", 2);
-        Path dir = currentDirectory;
-        if (parts.length > 1) {
-            dir = currentDirectory.resolve(parts[1]).normalize();
-        }
-        if (!Files.isDirectory(dir)) {
-            out.println("ls: cannot access '" + dir + "': No such directory");
-            return;
-        }
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
-            List<String> files = new ArrayList<>();
-            for (Path entry : stream) {
-                files.add(entry.getFileName().toString());
-            }
-            Collections.sort(files);
-            if (command.contains("-1")) {
-                for (String f : files) {
-                    out.println(f);
-                }
+        String[] tokens = command.trim().split("\\s+");
+
+        boolean singleColumn = false;
+        List<String> paths = new ArrayList<>();
+
+        for (int i = 1; i < tokens.length; i++) {
+            String token = tokens[i];
+            if (token.equals("-1")) {
+                singleColumn = true;
             } else {
-                for (String f : files) {
-                    out.print(f + " ");
-                }
-                out.println();
+                paths.add(token);
             }
-        } catch (IOException e) {
-            out.println("ls: error reading directory");
+        }
+
+        if (paths.isEmpty()) {
+            paths.add("."); // default to current directory
+        }
+
+        for (String pathStr : paths) {
+            Path dir = currentDirectory.resolve(pathStr).normalize();
+            if (!Files.isDirectory(dir)) {
+                out.println("ls: cannot access '" + pathStr + "': No such directory");
+                continue;
+            }
+
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
+                List<String> files = new ArrayList<>();
+                for (Path entry : stream) {
+                    files.add(entry.getFileName().toString());
+                }
+                Collections.sort(files);
+                for (String f : files) {
+                    if (singleColumn) {
+                        out.println(f);
+                    } else {
+                        out.print(f + " ");
+                    }
+                }
+                if (!singleColumn) {
+                    out.println();
+                }
+            } catch (IOException e) {
+                out.println("ls: error reading directory: " + e.getMessage());
+            }
         }
     }
+
 }
