@@ -29,6 +29,7 @@ public class Main {
                 executeCommandWithRedirection(input);
             } else {
                 executeCommand(input);
+                stdOut.print("$ ");
             }
      /*       
             if (input.contains(" > ")) {
