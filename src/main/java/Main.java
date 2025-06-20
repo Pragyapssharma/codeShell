@@ -214,8 +214,8 @@ public class Main {
             if (!filePath.isAbsolute()) {
                 filePath = currentDirectory.resolve(fileName);
             }
-            File file = filePath.toFile();
-            if (!file.exists()) {
+            
+            if (!Files.exists(filePath)) {
                 writer.println("cat: " + Paths.get(fileName).getFileName() + ": No such file or directory");
                 continue;
             }
