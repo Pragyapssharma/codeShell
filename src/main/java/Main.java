@@ -165,35 +165,28 @@ public class Main {
 
     
     private static void executeCommandWithRedirection(String input) throws InterruptedException {
-        String[] parts = input.split("( 1> )|( > )");
+        String[] parts = input.split("(\\s+1?>\\s+|\\s+>\\s+)");
+        if (parts.length != 2) {
+            System.out.println("Invalid redirection syntax.");
+            return;
+        }
+
         String command = parts[0].trim();
         String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
         File logFile = new File(outputFile);
-        File path = logFile.getParentFile();
-        if (!(path.exists())) {
-            path.mkdirs();
-        } else if (logFile.exists()) {
-            logFile.delete();
+        File parent = logFile.getParentFile();
+        if (!parent.exists()) {
+            parent.mkdirs();
         }
 
+        // Use ProcessBuilder to preserve command behavior (flags, spacing, paths)
         try {
-        	logFile.createNewFile();
-            Process process = Runtime.getRuntime().exec(command);
-
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()));
-                 PrintWriter writer = new PrintWriter(logFile)) {
-
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    writer.println(line);
-                }
-            }
-
+            ProcessBuilder pb = new ProcessBuilder("sh", "-c", command);
+            pb.redirectOutput(logFile);
+            pb.redirectError(ProcessBuilder.Redirect.INHERIT); // optional: show error output on console
+            Process process = pb.start();
             process.waitFor();
-
-
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
