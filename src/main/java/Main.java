@@ -180,12 +180,12 @@ public class Main {
             parent.mkdirs();
         }
 
-        // Use ProcessBuilder to preserve command behavior (flags, spacing, paths)
         try {
-            ProcessBuilder pb = new ProcessBuilder("sh", "-c", command);
-            pb.redirectOutput(logFile);
-            pb.redirectError(ProcessBuilder.Redirect.INHERIT); // optional: show error output on console
-            Process process = pb.start();
+            // Use the shell to parse the full command (including flags, quoted paths, etc.)
+            ProcessBuilder builder = new ProcessBuilder("sh", "-c", command);
+            builder.redirectOutput(logFile); // redirect stdout to file
+            builder.redirectError(ProcessBuilder.Redirect.INHERIT); // optional: redirect stderr to console
+            Process process = builder.start();
             process.waitFor();
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
