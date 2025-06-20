@@ -69,6 +69,7 @@ public class Main {
             System.out.println(handleEcho(input.substring(5).trim()));
         } else if (input.startsWith("cat ")) {
             handleCat(input.substring(4).trim());
+            System.out.flush();
         } else if ("pwd".equalsIgnoreCase(input)) {
             System.out.println(currentDirectory.toAbsolutePath().normalize());
         } else if (input.startsWith("ls")) {
