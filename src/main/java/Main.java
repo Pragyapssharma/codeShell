@@ -159,19 +159,9 @@ public class Main {
 
     
     private static void executeCommandWithRedirection(String input) {
-        String[] parts;
-        String outputFile;
-        String command;
-
-        if (input.contains(" 1> ")) {
-            parts = input.split(" 1> ");
-            command = parts[0].trim();
-            outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
-        } else {
-            parts = input.split(" > ", 2);
-            command = parts[0].trim();
-            outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
-        }
+        String[] parts = input.split("( 1> )|( > )");
+        String command = parts[0].trim();
+        String outputFile = parts[1].trim().replaceAll("^['\"]|['\"]$", "");
 
         File logFile = new File(outputFile);
         File path = logFile.getParentFile();
@@ -186,65 +176,7 @@ public class Main {
             PrintStream oldOut = System.out;
             try (PrintStream ps = new PrintStream(logFile)) {
                 System.setOut(ps);
-
-                if (command.startsWith("echo ")) {
-                    System.out.println(handleEcho(command.substring(5).trim()));
-                } else if (command.startsWith("ls")) {
-                    String pathStr;
-                    if (command.trim().equals("ls") || command.trim().equals("ls -1")) {
-                        pathStr = currentDirectory;
-                    } else {
-                        pathStr = command.replace("ls", "").replace("-1", "").trim();
-                    }
-                    File directory = new File(pathStr);
-                    if (!directory.isAbsolute()) {
-                        directory = new File(currentDirectory, pathStr);
-                    }
-                    String[] files = directory.list();
-                    if (files != null) {
-                        Arrays.sort(files);
-                        for (String file : files) {
-                            System.out.println(file);
-                        }
-                    }
-                    System.out.flush();
-                    ps.flush();
-            } else if (command.startsWith("cat ")) {
-                try {
-                    String filePath = command.substring(4).trim();
-                    File file = new File(filePath);
-                    if (file.isAbsolute()) {
-                        if (file.exists() && file.isFile()) {
-                            Files.readAllLines(file.toPath()).forEach(System.out::println);
-                        } else {
-                            System.out.println("cat: " + filePath + ": No such file or directory");
-                        }
-                    } else {
-                        File absoluteFile = new File(currentDirectory, filePath);
-                        if (absoluteFile.exists() && absoluteFile.isFile()) {
-                            Files.readAllLines(absoluteFile.toPath()).forEach(System.out::println);
-                        } else {
-                            System.out.println("cat: " + filePath + ": No such file or directory");
-                        }
-                    }
-                } catch (IOException e) {
-                    System.out.println("Error handling cat command: " + e.getMessage());
-                }
-            }else {
-                    try {
-                        Process process = Runtime.getRuntime().exec(command);
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            System.out.println(line);
-                        }
-
-                        process.waitFor();
-                    } catch (IOException | InterruptedException e) {
-                        System.out.println("Error executing command");
-                    }
-                }
+                executeCommandWithoutRedirection(command, ps);
                 System.out.flush();
             }
             System.setOut(oldOut);
@@ -252,24 +184,10 @@ public class Main {
             System.out.println("Error executing command: " + e.getMessage());
         }
     }
-    
-    private static void executeCommandWithoutRedirection(String input, ByteArrayOutputStream baos) {
-        PrintStream oldOut = System.out;
-        PrintStream ps = new PrintStream(baos);
-        System.setOut(ps);
 
+    private static void executeCommandWithoutRedirection(String input, PrintStream out) {
         if (input.startsWith("echo ")) {
-            System.out.println(handleEcho(input.substring(5).trim()));
-        } else if (input.startsWith("cat ")) {
-            try {
-                handleCat(input.substring(4).trim(), new OutputStreamWriter(System.out));
-            } catch (IOException e) {
-                System.out.println("Error handling cat command: " + e.getMessage());
-            }
-        } else if (input.startsWith("cd ")) {
-            changeDirectory(input.substring(3).trim());
-        } else if (input.equals("pwd")) {
-            System.out.println(currentDirectory);
+            out.println(handleEcho(input.substring(5).trim()));
         } else if (input.startsWith("ls")) {
             String path;
             if (input.trim().equals("ls")) {
@@ -285,8 +203,14 @@ public class Main {
             if (files != null) {
                 Arrays.sort(files);
                 for (String file : files) {
-                    System.out.println(file);
+                    out.println(file);
                 }
+            }
+        } else if (input.startsWith("cat ")) {
+            try {
+                handleCat(input.substring(4).trim(), new OutputStreamWriter(out));
+            } catch (IOException e) {
+                out.println("Error handling cat command: " + e.getMessage());
             }
         } else {
             try {
@@ -295,18 +219,17 @@ public class Main {
 
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
+                    out.println(line);
                 }
 
                 process.waitFor();
             } catch (IOException | InterruptedException e) {
-                System.out.println("Error executing command");
+                out.println("Error executing command");
             }
         }
-
-        System.out.flush();
-        System.setOut(oldOut);
     }
+    
+    
     
     private static String getLsOutput(String command) {
         StringBuilder output = new StringBuilder();
