@@ -215,7 +215,7 @@ public class Main {
             }
 
             if (!Files.exists(filePath)) {
-            	writer.println("cat: " + Paths.get(fileName).getFileName() + ": No such file or directory");
+            	writer.println("$ ");
                 writer.flush();
                 continue;
             }
