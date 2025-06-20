@@ -26,7 +26,13 @@ public class Main {
             }
             
             if (input.contains(">") || input.contains("1>")) {
-                executeCommandWithRedirection(input);
+            	try {
+                    executeCommandWithRedirection(input);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt(); // restore interrupt flag
+                    System.out.println("Command execution was interrupted.");
+                }
+
             } else {
                 executeCommand(input);
             }
@@ -438,7 +444,13 @@ public class Main {
 
     private static void executeCommand(String input) {
     	if (input.contains(">") || input.contains("1>")) {
-            executeCommandWithRedirection(input);
+    		try {
+                executeCommandWithRedirection(input);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.out.println("Command execution was interrupted.");
+            }
+
         } else if (input.startsWith("echo ")) {
             System.out.println(handleEcho(input.substring(5).trim()));
         } else if (input.startsWith("cat ")) {
