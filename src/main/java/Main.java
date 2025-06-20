@@ -175,12 +175,14 @@ public class Main {
         	if (command.equals("cat") || command.startsWith("cat ")) {
                 String args = command.length() == 3 ? "" : command.substring(4).trim();
                 handleCatForRedirection(args, writer);
+                writer.flush();
                 return;
             }
             // Handle echo command including exact "echo" with no args
             if (command.equals("echo") || command.startsWith("echo ")) {
                 String echoContent = command.length() == 4 ? "" : handleEcho(command.substring(5).trim());
                 writer.println(echoContent);
+                writer.flush();
                 return;
             }
 
