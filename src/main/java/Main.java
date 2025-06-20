@@ -212,7 +212,11 @@ public class Main {
     	List<String> fileNames = Arrays.asList(content.split("\\s+"));
 
         for (String fileName : fileNames) {
-        	File file = currentDirectory.resolve(fileName).toFile();  // Respect current directory
+        	Path filePath = Paths.get(fileName);
+        	if (!filePath.isAbsolute()) {
+        	    filePath = currentDirectory.resolve(fileName);
+        	}
+        	File file = filePath.toFile();
             if (!file.exists()) {
                 writer.println("cat: " + fileName + ": No such file or directory");
                 continue;
