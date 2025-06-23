@@ -282,6 +282,10 @@ public class Main {
         	if (!filePath.isAbsolute()) {
         	    filePath = currentDirectory.resolve(filePath).normalize();
         	}
+        	System.err.println("handleCatForRedirection: file = " + originalName);
+        	System.err.println("Absolute? " + filePath.isAbsolute());
+        	System.err.println("Resolved path = " + filePath.toString());
+
 
             if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
                 // Write error to redirected output
