@@ -15,13 +15,14 @@ public class Main {
 
         while (true) {
         	
-        	String input = scanner.nextLine();
+        	
 
-            if (System.console() != null && !inputLineWillRedirect(input)) {
+            if (System.console() != null) {
                 stdOut.print("$ ");
                 stdOut.flush();
             }
 
+            String input = scanner.nextLine();
             
             if (input == null) break;  // EOF
             input = input.trim();
