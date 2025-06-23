@@ -14,13 +14,15 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
 
         while (true) {
+        	
+        	String input = scanner.nextLine();
 
-            if (System.console() != null) {
+            if (System.console() != null && !inputLineWillRedirect(input)) {
                 stdOut.print("$ ");
                 stdOut.flush();
             }
 
-            String input = scanner.nextLine();
+            
             if (input == null) break;  // EOF
             input = input.trim();
             
@@ -52,7 +54,11 @@ public class Main {
         }
     }
 
-    private static boolean handleCd(String input) {
+    private static boolean inputLineWillRedirect(String input) {
+    	return input.contains(">");
+	}
+
+	private static boolean handleCd(String input) {
         if (!input.startsWith("cd")) return false;
 
         String[] parts = input.split("\\s+", 2);
