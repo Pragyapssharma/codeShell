@@ -174,31 +174,16 @@ public class Main {
         }
 
         try (PrintWriter writer = new PrintWriter(new FileWriter(file))) {
-        	// Handle `cat` separately
-            if (command.startsWith("cat ")) {
-                String args = command.substring(4).trim();
+        	if (command.equals("cat") || command.startsWith("cat ")) {
+                String args = command.length() == 3 ? "" : command.substring(4).trim();
                 handleCatForRedirection(args, writer);
                 writer.flush();
                 return;
             }
-
-            // Handle exact `cat` (no args)
-            if (command.equals("cat")) {
-                handleCatForRedirection("", writer);
-                writer.flush();
-                return;
-            }
-
-            // Handle echo
-            if (command.startsWith("echo ")) {
-                String echoContent = handleEcho(command.substring(5).trim());
+            // Handle echo command including exact "echo" with no args
+            if (command.equals("echo") || command.startsWith("echo ")) {
+                String echoContent = command.length() == 4 ? "" : handleEcho(command.substring(5).trim());
                 writer.println(echoContent);
-                writer.flush();
-                return;
-            }
-
-            if (command.equals("echo")) {
-                writer.println();
                 writer.flush();
                 return;
             }
@@ -227,7 +212,7 @@ public class Main {
             Path filePath = currentDirectory.resolve(originalName);
 
             if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
-                // Print the exact filename passed by user
+                // Send error message to redirected file
                 writer.println("cat: " + originalName + ": No such file or directory");
                 continue;
             }
@@ -235,16 +220,16 @@ public class Main {
             try (BufferedReader reader = Files.newBufferedReader(filePath)) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    writer.println(line);
+                    writer.println(line); // ✅ Send file content to redirected file
                 }
             } catch (IOException e) {
+                // On read error, print a message to the redirected file
                 writer.println("cat: " + originalName + ": Error reading file");
             }
         }
 
-        writer.flush();
+        writer.flush(); // Ensure everything is written
     }
-
 
 
     private static void executeLsCommandWithOutput(String command, PrintStream out) {
