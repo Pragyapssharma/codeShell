@@ -204,7 +204,7 @@ public class Main {
             file.getParentFile().mkdirs();
         }
 
-        try (PrintWriter writer = new PrintWriter(new FileWriter(file))) {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(file), true)) {
         	if (command.equals("cat") || command.startsWith("cat ")) {
                 String args = command.length() == 3 ? "" : command.substring(4).trim();
                 if (args.isEmpty()) {
