@@ -177,6 +177,11 @@ public class Main {
         	// Handle `cat` separately
             if (command.startsWith("cat ")) {
                 String args = command.substring(4).trim();
+                if (args.isEmpty()) {
+                    writer.println("cat: No file specified");
+                    writer.flush();
+                    return;
+                }
                 handleCatForRedirection(args, writer);
                 writer.flush();
                 return;
@@ -184,7 +189,7 @@ public class Main {
 
             // Handle exact `cat` (no args)
             if (command.equals("cat")) {
-                handleCatForRedirection("", writer);
+            	writer.println("cat: No file specified");
                 writer.flush();
                 return;
             }
