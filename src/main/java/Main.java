@@ -278,10 +278,15 @@ public class Main {
         List<String> fileNames = Arrays.asList(content.split("\\s+"));
 
         for (String originalName : fileNames) {
-        	Path filePath = Paths.get(originalName);
-        	if (!filePath.isAbsolute()) {
-        	    filePath = currentDirectory.resolve(filePath).normalize();
+        	
+        	Path filePath;
+        	
+        	if (originalName.startsWith("/")) {
+        	    filePath = Paths.get(originalName).normalize();
+        	} else {
+        	    filePath = currentDirectory.resolve(originalName).normalize();
         	}
+
 
             if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
                 // Write error to redirected output
