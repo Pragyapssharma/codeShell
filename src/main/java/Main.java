@@ -174,16 +174,31 @@ public class Main {
         }
 
         try (PrintWriter writer = new PrintWriter(new FileWriter(file))) {
-        	if (command.equals("cat") || command.startsWith("cat ")) {
-                String args = command.length() == 3 ? "" : command.substring(4).trim();
+        	// Handle `cat` separately
+            if (command.startsWith("cat ")) {
+                String args = command.substring(4).trim();
                 handleCatForRedirection(args, writer);
                 writer.flush();
                 return;
             }
-            // Handle echo command including exact "echo" with no args
-            if (command.equals("echo") || command.startsWith("echo ")) {
-                String echoContent = command.length() == 4 ? "" : handleEcho(command.substring(5).trim());
+
+            // Handle exact `cat` (no args)
+            if (command.equals("cat")) {
+                handleCatForRedirection("", writer);
+                writer.flush();
+                return;
+            }
+
+            // Handle echo
+            if (command.startsWith("echo ")) {
+                String echoContent = handleEcho(command.substring(5).trim());
                 writer.println(echoContent);
+                writer.flush();
+                return;
+            }
+
+            if (command.equals("echo")) {
+                writer.println();
                 writer.flush();
                 return;
             }
@@ -214,8 +229,8 @@ public class Main {
                 filePath = currentDirectory.resolve(fileName);
             }
 
-            if (!Files.exists(filePath)) {
-            	writer.println("cat: " + Paths.get(fileName).getFileName() + ": No such file or directory");
+            if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
+            	writer.println("cat: " + fileName + ": No such file or directory");
                 writer.flush();
                 continue;
             }
@@ -227,13 +242,13 @@ public class Main {
                 }
             } catch (IOException e) {
             	writer.println("cat: " + fileName + ": Error reading file");
-            	writer.flush();
+//            	writer.flush();
                 
             }
             writer.flush();
         }
 
-        writer.flush();
+//        writer.flush();
     }
 
 
