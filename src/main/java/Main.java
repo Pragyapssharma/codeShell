@@ -24,7 +24,7 @@ public class Main {
             }
 
             // Handle output redirection
-            if (input.matches(".*\\s(1?>|>)\\s.*")) {
+            if (input.contains(">")) {
                 try {
                     executeCommandWithRedirection(input);
                     System.out.flush();
@@ -73,7 +73,11 @@ public class Main {
         } else if ("pwd".equalsIgnoreCase(input)) {
             System.out.println(currentDirectory.toAbsolutePath().normalize());
         } else if (input.startsWith("ls")) {
-            executeLsCommand(input);
+        	if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                executeExternalProgram("cmd.exe /c dir " + input.substring(2).trim());
+            } else {
+                executeLsCommand(input);
+            }
         } else if (input.startsWith("type ")) {
             String cmd = input.substring(5).trim();
             if (BUILTINS.contains(cmd)) {
@@ -81,7 +85,7 @@ public class Main {
             } else {
                 findExecutable(cmd);
             }
-        } else if ("help".equalsIgnoreCase(input)) {
+        }else if ("help".equalsIgnoreCase(input)) {
             System.out.println("Available commands: " + BUILTINS);
         } else {
             executeExternalProgram(input);
@@ -140,7 +144,15 @@ public class Main {
 
     private static void executeExternalProgram(String input) {
         try {
-            ProcessBuilder builder = new ProcessBuilder("sh", "-c", input);
+        	List<String> cmd = new ArrayList<>();
+            if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                cmd.addAll(Arrays.asList("cmd.exe", "/c", input));
+            } else {
+                cmd.addAll(Arrays.asList("sh", "-c", input));
+            }
+
+            ProcessBuilder builder = new ProcessBuilder(cmd);
+            
             builder.directory(currentDirectory.toFile());
             Process process = builder.start();
 
@@ -159,6 +171,11 @@ public class Main {
     private static void executeCommandWithRedirection(String input) throws InterruptedException {
     	Pattern pattern = Pattern.compile("^(.*?)\\s*(?:1?>|>)\\s*(.*?)$");
         Matcher matcher = pattern.matcher(input);
+        
+        if (matcher.matches()) {
+            System.out.println("group(1): " + matcher.group(1)); // echo Hello World
+            System.out.println("group(2): " + matcher.group(2)); // hello.txt
+        }
 
         if (!matcher.matches()) {
             System.out.println("Invalid redirection syntax.");
@@ -167,6 +184,11 @@ public class Main {
 
         String command = matcher.group(1).trim();
         String outputFile = matcher.group(2).trim().replaceAll("^['\"]|['\"]$", "");
+        
+        if (outputFile.isEmpty()) {
+            System.out.println("Invalid redirection syntax.");
+            return;
+        }
 
         File file = new File(outputFile);
         if (file.getParentFile() != null && !file.getParentFile().exists()) {
@@ -187,12 +209,46 @@ public class Main {
                 writer.flush();
                 return;
             }
+            
+            if (command.equals("ls") || command.startsWith("ls ")) {
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                PrintStream tempOut = new PrintStream(buffer);
+                executeLsCommandWithOutput(command, tempOut);
+                writer.write(buffer.toString());
+                writer.flush();
+                return;
+            }
+            
+            if (command.startsWith("type ")) {
+                String cmd = command.substring(5).trim();
+                if (BUILTINS.contains(cmd)) {
+                    writer.println(cmd + " is a shell builtin");
+                } else {
+                    writer.println(cmd + ": not found");
+                }
+                writer.flush();
+                return;
+            }
+            
+            if ("pwd".equals(command)) {
+                writer.println(currentDirectory.toAbsolutePath().normalize());
+                writer.flush();
+                return;
+            }
+
 
             // For other commands, fallback to ProcessBuilder
-            ProcessBuilder builder = new ProcessBuilder("sh", "-c", command);
+            ProcessBuilder builder;
+            
+            if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                builder = new ProcessBuilder("cmd.exe", "/c", command);
+            } else {
+                builder = new ProcessBuilder("sh", "-c", command);
+            }
+            
             builder.directory(currentDirectory.toFile());
             builder.redirectOutput(file);
-            builder.redirectError(ProcessBuilder.Redirect.appendTo(file));  // append errors to same file
+            builder.redirectError(ProcessBuilder.Redirect.appendTo(file));
 
             Process process = builder.start();
             process.waitFor();
@@ -213,7 +269,7 @@ public class Main {
 
             if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
                 // Write error to redirected output
-                writer.println("cat: " + originalName + ": No such file or directory");
+            	writer.println("cat: " + originalName + ": No such file or directory");
                 continue;
             }
 
@@ -223,7 +279,7 @@ public class Main {
                     writer.println(line);  // Write file content to redirected output
                 }
             } catch (IOException e) {
-                writer.println("cat: " + originalName + ": Error reading file");
+            	writer.println("cat: " + originalName + ": Error reading file");
             }
         }
 
