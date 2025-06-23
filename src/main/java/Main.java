@@ -172,11 +172,6 @@ public class Main {
     	Pattern pattern = Pattern.compile("^(.*?)\\s*(?:1?>|>)\\s*(.*?)$");
         Matcher matcher = pattern.matcher(input);
         
-//        if (matcher.matches()) {
-//            System.out.println("group(1): " + matcher.group(1)); // echo Hello World
-//            System.out.println("group(2): " + matcher.group(2)); // hello.txt
-//        }
-
         if (!matcher.matches()) {
             System.out.println("Invalid redirection syntax.");
             return;
@@ -198,6 +193,10 @@ public class Main {
         try (PrintWriter writer = new PrintWriter(new FileWriter(file))) {
         	if (command.equals("cat") || command.startsWith("cat ")) {
                 String args = command.length() == 3 ? "" : command.substring(4).trim();
+                if (args.isEmpty()) {
+                    writer.flush();
+                    return;
+                }
                 handleCatForRedirection(args, writer);
                 writer.flush();
                 return;

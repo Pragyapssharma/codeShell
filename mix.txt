@@ -1,2 +1,0 @@
-Hello
-cat: missing.txt: No such file or directory
