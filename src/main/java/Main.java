@@ -212,7 +212,7 @@ public class Main {
             Path filePath = currentDirectory.resolve(originalName);
 
             if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
-                // Send error message to redirected file
+                // Write error to redirected output
                 writer.println("cat: " + originalName + ": No such file or directory");
                 continue;
             }
@@ -220,16 +220,16 @@ public class Main {
             try (BufferedReader reader = Files.newBufferedReader(filePath)) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    writer.println(line); // Send file content to redirected file
+                    writer.println(line);  // Write file content to redirected output
                 }
             } catch (IOException e) {
-                // On read error, print a message to the redirected file
                 writer.println("cat: " + originalName + ": Error reading file");
             }
         }
 
-        writer.flush(); // Ensure everything is written
+        writer.flush();
     }
+
 
 
     private static void executeLsCommandWithOutput(String command, PrintStream out) {
