@@ -10,12 +10,20 @@ public class Main {
     private static final PrintStream stdOut = System.out;
     private static final Set<String> BUILTINS = new HashSet<>(Arrays.asList("echo", "exit", "type", "pwd", "ls", "help", "cd", "cat"));
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         Scanner scanner = new Scanner(System.in);
 
         while (true) {
-            stdOut.print("$ ");
-            String input = scanner.nextLine().trim();
+
+            if (System.console() != null) {
+                stdOut.print("$ ");
+                stdOut.flush();
+            }
+
+            String input = scanner.nextLine();
+            if (input == null) break;  // EOF
+            input = input.trim();
+            
             if (input.isEmpty()) continue;
 
             if ("exit 0".equalsIgnoreCase(input) || "exit".equalsIgnoreCase(input)) {
@@ -25,9 +33,8 @@ public class Main {
 
             // Handle output redirection
             if (input.contains(">")) {
-                try {
+            	try {
                     executeCommandWithRedirection(input);
-                    System.out.flush();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     System.out.println("Command execution was interrupted.");
