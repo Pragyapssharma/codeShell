@@ -55,10 +55,6 @@ public class Main {
         }
     }
 
-    private static boolean inputLineWillRedirect(String input) {
-    	return input.contains(">");
-	}
-
 	private static boolean handleCd(String input) {
         if (!input.startsWith("cd")) return false;
 
@@ -117,7 +113,7 @@ public class Main {
     private static void handleCat(String content) {
         List<String> fileNames = Arrays.asList(content.split("\\s+"));
         for (String fileName : fileNames) {
-            Path file = currentDirectory.resolve(fileName);
+            Path file = currentDirectory.resolve(fileName).normalize();
             if (!Files.exists(file)) {
                 System.out.println("cat: " + fileName + ": No such file or directory");
                 continue;
@@ -128,7 +124,7 @@ public class Main {
                     System.out.println(line);
                 }
             } catch (IOException e) {
-                System.out.println("Error reading file: " + fileName);
+            	System.out.println("cat: " + fileName + ": Error reading file");
             }
         }
     }
@@ -261,7 +257,7 @@ public class Main {
             
             builder.directory(currentDirectory.toFile());
             builder.redirectOutput(file);
-            builder.redirectError(ProcessBuilder.Redirect.appendTo(file));
+            builder.redirectError(file);
 
             Process process = builder.start();
             process.waitFor();
@@ -269,7 +265,7 @@ public class Main {
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
-        System.out.flush();
+//        System.out.flush();
     }
 
     private static void handleCatForRedirection(String content, PrintWriter writer) {
