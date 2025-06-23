@@ -177,11 +177,6 @@ public class Main {
         	// Handle `cat` separately
             if (command.startsWith("cat ")) {
                 String args = command.substring(4).trim();
-                if (args.isEmpty()) {
-                    writer.println("cat: No file specified");
-                    writer.flush();
-                    return;
-                }
                 handleCatForRedirection(args, writer);
                 writer.flush();
                 return;
@@ -229,15 +224,15 @@ public class Main {
         List<String> fileNames = Arrays.asList(content.split("\\s+"));
 
         for (String originalName : fileNames) {
-            Path resolvedPath = currentDirectory.resolve(originalName);
+            Path filePath = currentDirectory.resolve(originalName);
 
-            if (!Files.exists(resolvedPath) || Files.isDirectory(resolvedPath)) {
-                // ❗ Print the original name, not the resolved one
+            if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
+                // Print the exact filename passed by user
                 writer.println("cat: " + originalName + ": No such file or directory");
                 continue;
             }
 
-            try (BufferedReader reader = Files.newBufferedReader(resolvedPath)) {
+            try (BufferedReader reader = Files.newBufferedReader(filePath)) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     writer.println(line);
@@ -249,6 +244,7 @@ public class Main {
 
         writer.flush();
     }
+
 
 
     private static void executeLsCommandWithOutput(String command, PrintStream out) {
