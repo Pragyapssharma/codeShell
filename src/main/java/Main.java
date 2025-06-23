@@ -189,7 +189,7 @@ public class Main {
 
             // Handle exact `cat` (no args)
             if (command.equals("cat")) {
-            	writer.println("cat: No file specified");
+                handleCatForRedirection("", writer);
                 writer.flush();
                 return;
             }
@@ -228,36 +228,27 @@ public class Main {
 
         List<String> fileNames = Arrays.asList(content.split("\\s+"));
 
-        for (String fileName : fileNames) {
-            Path filePath = Paths.get(fileName);
-            if (!filePath.isAbsolute()) {
-                filePath = currentDirectory.resolve(fileName);
-            }
+        for (String originalName : fileNames) {
+            Path resolvedPath = currentDirectory.resolve(originalName);
 
-            if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
-            	writer.println("cat: " + fileName + ": No such file or directory");
-                writer.flush();
+            if (!Files.exists(resolvedPath) || Files.isDirectory(resolvedPath)) {
+                // ❗ Print the original name, not the resolved one
+                writer.println("cat: " + originalName + ": No such file or directory");
                 continue;
             }
 
-            try (BufferedReader reader = Files.newBufferedReader(filePath)) {
+            try (BufferedReader reader = Files.newBufferedReader(resolvedPath)) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     writer.println(line);
                 }
             } catch (IOException e) {
-            	writer.println("cat: " + fileName + ": Error reading file");
-//            	writer.flush();
-                
+                writer.println("cat: " + originalName + ": Error reading file");
             }
-            writer.flush();
         }
 
-//        writer.flush();
+        writer.flush();
     }
-
-
-
 
 
     private static void executeLsCommandWithOutput(String command, PrintStream out) {
