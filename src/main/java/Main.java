@@ -220,7 +220,7 @@ public class Main {
             try (BufferedReader reader = Files.newBufferedReader(filePath)) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    writer.println(line); // ✅ Send file content to redirected file
+                    writer.println(line); // Send file content to redirected file
                 }
             } catch (IOException e) {
                 // On read error, print a message to the redirected file
