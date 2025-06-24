@@ -103,10 +103,19 @@ public class Main {
     }
 
     private static String handleEcho(String content) {
-        if ((content.startsWith("\"") && content.endsWith("\"")) ||
-            (content.startsWith("'") && content.endsWith("'"))) {
+        if (content.startsWith("\"") && content.endsWith("\"")) {
+            // Remove outer quotes
+            content = content.substring(1, content.length() - 1);
+            
+            // Handle escaped characters within double quotes
+            content = content.replace("\\\"", "\"")
+                             .replace("\\\\", "\\")
+                             .replace("\\'", "'"); // only inside double quotes
+        } else if (content.startsWith("'") && content.endsWith("'")) {
+            // In single quotes, nothing is interpreted — return as-is without quotes
             content = content.substring(1, content.length() - 1);
         }
+
         return content;
     }
 
