@@ -105,21 +105,20 @@ public class Main {
     private static String handleEcho(String content) {
         if (content.startsWith("\"") && content.endsWith("\"")) {
             content = content.substring(1, content.length() - 1);
-
             StringBuilder result = new StringBuilder();
-            for (int i = 0; i < content.length(); i++) {
-                char c = content.charAt(i);
-                if (c == '\\' && i + 1 < content.length()) {
-                    char next = content.charAt(i + 1);
-                    if (next == '\\' || next == '"' || next == '\'') {
-                        result.append(next);
-                        i++; // skip the escaped character
-                    } else {
-                        result.append(c); // just append the backslash
-                    }
+            boolean escapeNext = false;
+            for (char c : content.toCharArray()) {
+                if (escapeNext) {
+                    result.append(c);
+                    escapeNext = false;
+                } else if (c == '\\') {
+                    escapeNext = true;
                 } else {
                     result.append(c);
                 }
+            }
+            if (escapeNext) {
+                result.append('\\');
             }
             return result.toString();
         } else if (content.startsWith("'") && content.endsWith("'")) {
