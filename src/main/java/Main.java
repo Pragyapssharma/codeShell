@@ -130,13 +130,13 @@ public class Main {
 
             if (c == '\'' && !inDoubleQuote) {
                 inSingleQuote = !inSingleQuote;
-                // Don't add quote to token
+                // Skip appending quote
                 continue;
             }
 
             if (c == '"' && !inSingleQuote) {
                 inDoubleQuote = !inDoubleQuote;
-                // Don't add quote to token
+                // Skip appending quote
                 continue;
             }
 
@@ -157,6 +157,7 @@ public class Main {
 
         return tokens;
     }
+
 
 
     static PrintStream handleRedirection(String input) throws IOException {
