@@ -26,7 +26,7 @@ public class Main {
   		String rawInput = scanner.nextLine();
         
   		if (rawInput.trim().isEmpty()) {
-            System.out.print("$ ");
+//            System.out.print("$ ");
             continue;
         }
   		
