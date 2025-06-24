@@ -113,9 +113,9 @@ public class Main {
                     char next = content.charAt(i + 1);
                     if (next == '\\' || next == '"' || next == '\'') {
                         result.append(next);
-                        i++; // Skip the escaped character
+                        i++; // skip the escaped character
                     } else {
-                        result.append(c); // Keep the backslash
+                        result.append(c); // just append the backslash
                     }
                 } else {
                     result.append(c);
@@ -128,6 +128,7 @@ public class Main {
 
         return content;
     }
+
 
 
 
