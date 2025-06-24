@@ -17,15 +17,27 @@ public class Main {
     
     while (scanner.hasNextLine()) 
     {
-    	String rawInput = scanner.nextLine();
-        if (rawInput.trim().isEmpty()) {
+    	System.setOut(stdout);
+  		System.setErr(stderr);
+  		System.out.print("$ ");
+  		
+  		if (!scanner.hasNextLine()) break;
+    	
+  		String rawInput = scanner.nextLine();
+        
+  		if (rawInput.trim().isEmpty()) {
             System.out.print("$ ");
             continue;
         }
+  		
       String input = handleRedirection(rawInput, stdout);
       List<String> tokens = tokenize(input);
+      
+      if (tokens.isEmpty()) continue;
+      
       String argsCleaned = String.join(" ", tokens);
       String command = argsCleaned.split(" ")[0];
+//      String command = tokens.get(0);
       
       switch (command) {
                 case "exit" -> System.exit(0);
@@ -52,9 +64,8 @@ public class Main {
                 default -> commandExec(tokens, input);
             }
             
-      		System.setOut(stdout);
-      		System.setErr(stderr);
-            System.out.print("$ ");
+      		
+            
         }
     }
 
