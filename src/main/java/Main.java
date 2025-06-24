@@ -3,249 +3,160 @@ import java.nio.file.*;
 import java.util.*;
 
 public class Main {
-
     public static void main(String[] args) throws Exception {
-        
-    	System.out.print("$ ");
-        
-    	Scanner scanner = new Scanner(System.in);
+        Scanner scanner = new Scanner(System.in);
         final PrintStream stdout = System.out;
-        
-        while (scanner.hasNextLine()) 
-        {
-            String input = scanner.nextLine();
-            input = handleRedirection(input, stdout);
-            List<String> tokens = tokenize(input);
-            String argsCleaned = String.join(" ", tokens);
-            String command = tokens.get(0);
+        System.out.print("$ ");
 
-            switch (command) {
-                case "exit" -> System.exit(0);
-                case "echo" -> System.out.println(argsCleaned.substring(5));
-                case "type" -> type(argsCleaned.substring(5).trim());
-                case "pwd" -> System.out.println(Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize());
-                case "cd" -> changeDirectory(tokens);
-                case "ls" -> lsCommand(tokens);
-                case "cat" -> catCommand(tokens);
-                default -> commandExec(tokens, input);
+        while (scanner.hasNextLine()) {
+            String rawLine = scanner.nextLine();
+
+            // Handle stdout redirection
+            PrintStream redirected = handleRedirection(rawLine);
+            if (redirected != null) {
+                System.setOut(redirected);
             }
-            
+
+            // After redirection, get the real command to parse
+            String line = System.getProperty("redirected.input", rawLine);
+            List<String> tokens = tokenize(line);
+
+            if (!tokens.isEmpty()) {
+                switch (tokens.get(0)) {
+                    case "exit":
+                        System.exit(0);
+                    case "echo":
+                        echo(tokens);
+                        break;
+                    case "type":
+                        type(tokens);
+                        break;
+                    case "pwd":
+                        System.out.println(
+                            Paths.get(System.getProperty("user.dir"))
+                                 .toAbsolutePath()
+                                 .normalize()
+                        );
+                        break;
+                    case "cd":
+                        changeDirectory(tokens);
+                        break;
+                    default:
+                        commandExec(tokens);
+                }
+            }
+
+            // Restore stdout, prompt next line
             System.setOut(stdout);
             System.out.print("$ ");
         }
     }
 
-    static void type(String command) {
-        String[] Builtins = {"exit", "echo", "type", "pwd", "cd", "ls", "cat"};
-        for (String validCommand : Builtins) {
-            if (validCommand.equals(command)) {
-                System.out.printf("%s is a shell builtin\n", command);
+    static void echo(List<String> tokens) {
+        System.out.println(
+            tokens.size() > 1 ? String.join(" ", tokens.subList(1, tokens.size())) : ""
+        );
+    }
+
+    static void type(List<String> tokens) {
+        if (tokens.size() < 2) return;
+        String cmd = tokens.get(1);
+        List<String> builtins = List.of("exit", "echo", "type", "pwd", "cd");
+        if (builtins.contains(cmd)) {
+            System.out.printf("%s is a shell builtin%n", cmd);
+            return;
+        }
+        for (String path : System.getenv("PATH").split(":")) {
+            File f = new File(path, cmd);
+            if (f.exists() && f.canExecute()) {
+                System.out.printf("%s is %s%n", cmd, f.getAbsolutePath());
                 return;
             }
         }
-        String[] PATH = System.getenv("PATH").split(File.pathSeparator);
-        for (String path : PATH) {
-            File[] directory = new File(path).listFiles();
-            if (directory != null) {
-                for (File file : directory) {
-                    if (file.getName().equals(command)) {
-                        System.out.printf("%s is %s\n", command, file.getAbsolutePath());
-                        return;
-                    }
-                }
+        System.out.printf("%s: not found%n", cmd);
+    }
+
+    static void commandExec(List<String> tokens) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(tokens)
+                .directory(new File(System.getProperty("user.dir")));
+            Process p = pb.start();
+
+            try (BufferedReader out = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                 BufferedReader err = new BufferedReader(new InputStreamReader(p.getErrorStream()))) {
+                out.lines().forEach(System.out::println);
+                err.lines().forEach(System.err::println);
             }
+            p.waitFor();
+        } catch (Exception e) {
+            System.err.printf("%s: command not found%n", tokens.get(0));
         }
-        System.out.printf("%s: not found\n", command);
     }
 
     static void changeDirectory(List<String> tokens) {
-        if (tokens.size() == 1) {
-            System.setProperty("user.dir", System.getProperty("user.home"));
+        if (tokens.size() < 2) return;
+        String path = tokens.get(1);
+        Path target = path.startsWith("~")
+            ? Paths.get(System.getenv("HOME") + path.substring(1))
+            : Paths.get(System.getProperty("user.dir")).resolve(path).normalize();
+
+        if (Files.exists(target) && Files.isDirectory(target)) {
+            System.setProperty("user.dir", target.toString());
         } else {
-            String path = tokens.get(1);
-            if (path.charAt(0) == '~') {
-                String part1 = System.getProperty("user.home");
-                String part2 = path.substring(1).trim();
-                Path path1 = Paths.get(part1);
-                Path path2 = Paths.get(part2);
-                Path resolvedPath = path1.resolve(path2);
-                if (Files.exists(resolvedPath) && Files.isDirectory(resolvedPath)) {
-                    System.setProperty("user.dir", resolvedPath.toString());
-                } else {
-                    System.out.printf("cd: %s: No such file or directory\n", path);
-                }
-            } else {
-                Path workingDir = Paths.get(System.getProperty("user.dir"));
-                Path normalizedPath = Paths.get(path);
-                Path resolvedPath = workingDir.resolve(normalizedPath).normalize();
-                if (Files.exists(resolvedPath) && Files.isDirectory(resolvedPath)) {
-                    System.setProperty("user.dir", resolvedPath.toString());
-                } else {
-                    System.out.printf("cd: %s: No such file or directory\n", path);
-                }
-            }
+            System.out.printf("cd: %s: No such file or directory%n", path);
         }
     }
 
-    static void lsCommand(List<String> tokens) {
-        try {
-            Path dir;
-            boolean singleColumn = false;
-            int dirIndex = 1;
-            if (tokens.get(1).equals("-1")) {
-                singleColumn = true;
-                dirIndex = 2;
-            }
-            if (tokens.size() > dirIndex) {
-                dir = Paths.get(tokens.get(dirIndex));
-            } else {
-                dir = Paths.get(System.getProperty("user.dir"));
-            }
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
-                for (Path entry : stream) {
-                    if (singleColumn) {
-                        System.out.println(entry.getFileName());
-                    } else {
-                        System.out.print(entry.getFileName() + " ");
-                    }
-                }
-                if (!singleColumn) {
-                    System.out.println();
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("ls: error reading directory");
-        }
-    }
-
-    static void catCommand(List<String> tokens) {
-        try {
-            if (tokens.size() > 1) {
-                for (int i = 1; i < tokens.size(); i++) {
-                    Path file = Paths.get(tokens.get(i));
-                    if (!Files.exists(file)) {
-                        System.out.println("cat: " + tokens.get(i) + ": No such file or directory");
-                        continue;
-                    }
-                    try (BufferedReader reader = Files.newBufferedReader(file)) {
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            System.out.println(line);
-                        }
-                    } catch (Exception e) {
-                        System.out.println("cat: " + tokens.get(i) + ": Error reading file");
-                    }
-                }
-            } else {
-                System.out.println("cat: missing file operand");
-            }
-        } catch (Exception e) {
-            System.out.println("cat: error reading file");
-        }
-    }
-
-    static void commandExec(List<String> tokens, String input) {
-        try {
-            ProcessBuilder builder = new ProcessBuilder(tokens);
-            builder.directory(Paths.get(System.getProperty("user.dir")).toFile());
-            Process process = builder.start();
-            BufferedReader stdoutReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = stdoutReader.readLine()) != null) {
-                System.out.println(line);
-            }
-            BufferedReader stderrReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-            while ((line = stderrReader.readLine()) != null) {
-                System.err.println(line);
-            }
-            process.waitFor();
-        } catch (Exception e) {
-            System.err.printf("%s: command not found\n", input);
-        }
-    }
-
-    public static List<String> tokenize(String input) {
+    static List<String> tokenize(String input) {
         List<String> tokens = new ArrayList<>();
-        StringBuilder current = new StringBuilder();
-        boolean inSingleQuote = false;
-        boolean inDoubleQuote = false;
-        boolean escaping = false;
+        StringBuilder cur = new StringBuilder();
+        boolean sq = false, dq = false, esc = false;
 
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);
-
-            if (escaping) {
-                current.append(c);
-                escaping = false;
+            if (esc) {
+                cur.append(c);
+                esc = false;
                 continue;
             }
-            if (c == '\\') {
-                if (inSingleQuote) {
-                    current.append(c);
-                } else if (inDoubleQuote) {
-                    if (i + 1 < input.length()) {
-                        char next = input.charAt(i + 1);
-                        if (next == '\\' || next == '"' || next == '$' || next == '\n') {
-                            i++;
-                            current.append(input.charAt(i));
-                        } else {
-                            current.append(c);
-                        }
-                    } else {
-                        current.append(c);
-                    }
-                } else {
-                    escaping = true;
-                }
-            } else if (c == '\'') {
-                if (inDoubleQuote) {
-                    current.append(c);
-                } else {
-                    inSingleQuote = !inSingleQuote;
-                }
-            } else if (c == '"') {
-                if (inSingleQuote) {
-                    current.append(c);
-                } else {
-                    inDoubleQuote = !inDoubleQuote;
-                }
-            } else if (Character.isWhitespace(c)) {
-                if (inSingleQuote || inDoubleQuote) {
-                    current.append(c);
-                } else {
-                    if (!current.isEmpty()) {
-                        tokens.add(current.toString());
-                        current.setLength(0);
-                    }
+            if (c == '\\' && !sq) {
+                esc = true;
+                continue;
+            }
+            if (c == '\'' && !dq) {
+                sq = !sq;
+                continue;
+            }
+            if (c == '"' && !sq) {
+                dq = !dq;
+                continue;
+            }
+            if (Character.isWhitespace(c) && !sq && !dq) {
+                if (cur.length() > 0) {
+                    tokens.add(cur.toString());
+                    cur.setLength(0);
                 }
             } else {
-                current.append(c);
+                cur.append(c);
             }
         }
-        if (!current.isEmpty()) {
-            tokens.add(current.toString());
-        }
+        if (cur.length() > 0) tokens.add(cur.toString());
         return tokens;
     }
 
-    public static String handleRedirection(String input, PrintStream stdout) throws IOException {
+    static PrintStream handleRedirection(String input) throws IOException {
         if (input.contains(" 1> ") || input.contains(" > ")) {
-            String[] parts = input.split("( 1> )|( > )");
-            String commandPart = parts[0].trim();
-            String outputPathStr = parts[1].trim();
-            Path logPath = Paths.get(outputPathStr);
-            Path parentDir = logPath.getParent();
-            if (parentDir != null && !Files.exists(parentDir)) {
-                Files.createDirectories(parentDir);
-            }
-            if (Files.exists(logPath)) {
-                Files.delete(logPath);
-            }
-            Files.createFile(logPath);
-            System.setOut(new PrintStream(Files.newOutputStream(logPath)));
-            return commandPart;
-        } else {
-            return input;
+            String[] parts = input.split(" (?:1>|>) ");
+            String cmd = parts[0].trim();
+            String outPath = parts[1].trim();
+            Path p = Paths.get(outPath);
+            if (p.getParent() != null) Files.createDirectories(p.getParent());
+            Files.write(p, new byte[0]); // truncate/create
+
+            System.setProperty("redirected.input", cmd);
+            return new PrintStream(Files.newOutputStream(p));
         }
+        System.setProperty("redirected.input", input);
+        return null;
     }
 }
