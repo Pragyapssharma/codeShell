@@ -179,118 +179,94 @@ public class Main {
     }
 
     private static void executeCommandWithRedirection(String input) throws InterruptedException {
-    	
-    	String commandPart = input;
+        String commandPart = input;
         String stdoutFile = null;
         String stderrFile = null;
-    	Pattern pattern = Pattern.compile("^(.*?)\\s*(?:1?>|>)\\s*(.*?)$");
-        Matcher matcher = pattern.matcher(input);
-        
 
-        // Match and extract stderr redirection (2>)
-        Pattern stderrPattern = Pattern.compile("^(.*?)\\s*2>\\s*([^>]+)$");
-        Matcher stderrMatcher = stderrPattern.matcher(commandPart);
+        // Extract 2> stderr redirection
+        Matcher stderrMatcher = Pattern.compile("^(.*?)(\\s+2>\\s*[^>]+)").matcher(commandPart);
         if (stderrMatcher.find()) {
-            commandPart = stderrMatcher.group(1).trim();
-            stderrFile = stderrMatcher.group(2).trim().replaceAll("^['\"]|['\"]$", "");
+            commandPart = commandPart.replace(stderrMatcher.group(2), "").trim();
+            stderrFile = stderrMatcher.group(2).replaceFirst("\\s*2>\\s*", "").trim().replaceAll("^['\"]|['\"]$", "");
         }
 
-        // Match and extract stdout redirection (>)
-        Pattern stdoutPattern = Pattern.compile("^(.*?)\\s*>\\s*([^>]+)$");
-        Matcher stdoutMatcher = stdoutPattern.matcher(commandPart);
+        // Extract 1> or > stdout redirection
+        Matcher stdoutMatcher = Pattern.compile("^(.*?)(\\s+[1]?>\\s*[^>]+)").matcher(commandPart);
         if (stdoutMatcher.find()) {
-            commandPart = stdoutMatcher.group(1).trim();
-            stdoutFile = stdoutMatcher.group(2).trim().replaceAll("^['\"]|['\"]$", "");
+            commandPart = commandPart.replace(stdoutMatcher.group(2), "").trim();
+            stdoutFile = stdoutMatcher.group(2).replaceFirst("\\s*[1]?>\\s*", "").trim().replaceAll("^['\"]|['\"]$", "");
+        }
+
+        if (stdoutFile == null && stderrFile == null) {
+            System.out.println("Invalid redirection syntax.");
+            return;
         }
 
         File stdoutF = stdoutFile != null ? new File(stdoutFile) : null;
         File stderrF = stderrFile != null ? new File(stderrFile) : null;
 
-        // Create parent directories if needed
-        if (stdoutF != null && stdoutF.getParentFile() != null) {
-            stdoutF.getParentFile().mkdirs();
-        }
-        if (stderrF != null && stderrF.getParentFile() != null) {
-            stderrF.getParentFile().mkdirs();
-        }
-        
-        if (!matcher.matches()) {
-            System.out.println("Invalid redirection syntax.");
-            return;
-        }
+        if (stdoutF != null && stdoutF.getParentFile() != null) stdoutF.getParentFile().mkdirs();
+        if (stderrF != null && stderrF.getParentFile() != null) stderrF.getParentFile().mkdirs();
 
-        String command = matcher.group(1).trim();
-        String outputFile = matcher.group(2).trim().replaceAll("^['\"]|['\"]$", "");
-        
-        if (outputFile.isEmpty()) {
-            System.out.println("Invalid redirection syntax.");
-            return;
-        }
+        try {
+            // Handle built-in commands manually for stdout only
+            if (stderrF == null && stdoutF != null) {
+                try (PrintWriter writer = new PrintWriter(new FileWriter(stdoutF), true)) {
+                    if (commandPart.equals("cat") || commandPart.startsWith("cat ")) {
+                        String args = commandPart.length() == 3 ? "" : commandPart.substring(4).trim();
+                        if (args.isEmpty()) {
+                            writer.flush();
+                            return;
+                        }
+                        handleCatForRedirection(args, writer);
+                        writer.flush();
+                        return;
+                    }
 
-        File file = new File(outputFile);
-        if (file.getParentFile() != null && !file.getParentFile().exists()) {
-            file.getParentFile().mkdirs();
-        }
+                    if (commandPart.equals("echo") || commandPart.startsWith("echo ")) {
+                        String echoContent = commandPart.length() == 4 ? "" : handleEcho(commandPart.substring(5).trim());
+                        writer.println(echoContent);
+                        writer.flush();
+                        return;
+                    }
 
-        try (PrintWriter writer = new PrintWriter(new FileWriter(file), true)) {
-        	if (command.equals("cat") || command.startsWith("cat ")) {
-                String args = command.length() == 3 ? "" : command.substring(4).trim();
-                if (args.isEmpty()) {
-                    writer.flush();
-                    return;
+                    if (commandPart.equals("ls") || commandPart.startsWith("ls ")) {
+                        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                        PrintStream tempOut = new PrintStream(buffer);
+                        executeLsCommandWithOutput(commandPart, tempOut);
+                        writer.write(buffer.toString());
+                        writer.flush();
+                        return;
+                    }
+
+                    if (commandPart.startsWith("type ")) {
+                        String cmd = commandPart.substring(5).trim();
+                        if (BUILTINS.contains(cmd)) {
+                            writer.println(cmd + " is a shell builtin");
+                        } else {
+                            writer.println(cmd + ": not found");
+                        }
+                        writer.flush();
+                        return;
+                    }
+
+                    if ("pwd".equals(commandPart)) {
+                        writer.println(currentDirectory.toAbsolutePath().normalize());
+                        writer.flush();
+                        return;
+                    }
                 }
-                handleCatForRedirection(args, writer);
-                writer.flush();
-                return;
-            }
-            // Handle echo command including exact "echo" with no args
-            if (command.equals("echo") || command.startsWith("echo ")) {
-                String echoContent = command.length() == 4 ? "" : handleEcho(command.substring(5).trim());
-                writer.println(echoContent);
-                writer.flush();
-                return;
-            }
-            
-            if (command.equals("ls") || command.startsWith("ls ")) {
-                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                PrintStream tempOut = new PrintStream(buffer);
-                executeLsCommandWithOutput(command, tempOut);
-                writer.write(buffer.toString());
-                writer.flush();
-                return;
-            }
-            
-            if (command.startsWith("type ")) {
-                String cmd = command.substring(5).trim();
-                if (BUILTINS.contains(cmd)) {
-                    writer.println(cmd + " is a shell builtin");
-                } else {
-                    writer.println(cmd + ": not found");
-                }
-                writer.flush();
-                return;
-            }
-            
-            if ("pwd".equals(command)) {
-                writer.println(currentDirectory.toAbsolutePath().normalize());
-                writer.flush();
-                return;
             }
 
-
-            // For other commands, fallback to ProcessBuilder
+            // For external commands or if stderr redirection is needed
             ProcessBuilder builder;
-            
             if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                builder = new ProcessBuilder("cmd.exe", "/c", command);
+                builder = new ProcessBuilder("cmd.exe", "/c", commandPart);
             } else {
-                builder = new ProcessBuilder("sh", "-c", command);
+                builder = new ProcessBuilder("sh", "-c", commandPart);
             }
-            
+
             builder.directory(currentDirectory.toFile());
-            builder.redirectOutput(file);
-            builder.redirectError(file);
-            
             if (stdoutF != null) builder.redirectOutput(stdoutF);
             if (stderrF != null) builder.redirectError(stderrF);
 
@@ -300,8 +276,8 @@ public class Main {
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
-//        System.out.flush();
     }
+
 
     private static void handleCatForRedirection(String content, PrintWriter writer) {
         if (content.isEmpty()) return;
