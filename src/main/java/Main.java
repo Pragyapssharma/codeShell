@@ -1,400 +1,236 @@
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class Main {
 
-    private static Path currentDirectory = Paths.get(System.getProperty("user.dir"));
-    private static final PrintStream stdOut = System.out;
-    private static final Set<String> BUILTINS = new HashSet<>(Arrays.asList("echo", "exit", "type", "pwd", "ls", "help", "cd", "cat"));
-
-    public static void main(String[] args) throws InterruptedException {
-        Scanner scanner = new Scanner(System.in);
-
-        while (true) {
-        	
-        	
-
-            if (System.console() != null) {
-                stdOut.print("$ ");
-                stdOut.flush();
-            }
-
+    public static void main(String[] args) throws Exception {
+        
+    	System.out.print("$ ");
+        
+    	Scanner scanner = new Scanner(System.in);
+        final PrintStream stdout = System.out;
+        
+        while (scanner.hasNextLine()) 
+        {
             String input = scanner.nextLine();
+            input = handleRedirection(input, stdout);
+            List<String> tokens = tokenize(input);
+            String argsCleaned = String.join(" ", tokens);
+            String command = tokens.get(0);
+
+            switch (command) {
+                case "exit" -> System.exit(0);
+                case "echo" -> System.out.println(argsCleaned.substring(5));
+                case "type" -> type(argsCleaned.substring(5).trim());
+                case "pwd" -> System.out.println(Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize());
+                case "cd" -> changeDirectory(tokens);
+                case "ls" -> lsCommand(tokens);
+                case "cat" -> catCommand(tokens);
+                default -> commandExec(tokens, input);
+            }
             
-            if (input == null) break;  // EOF
-            input = input.trim();
-            
-            if (input.isEmpty()) continue;
-
-            if ("exit 0".equalsIgnoreCase(input) || "exit".equalsIgnoreCase(input)) {
-                scanner.close();
-                System.exit(0);
-            }
-
-            // Handle output redirection
-            if (input.contains(">")) {
-            	try {
-                    executeCommandWithRedirection(input);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    System.out.println("Command execution was interrupted.");
-                }
-                continue;
-            }
-
-            // Handle cd command separately
-            if (handleCd(input)) {
-                continue;
-            }
-
-            // Handle builtins and external commands
-            processCommand(input);
+            System.setOut(stdout);
+            System.out.print("$ ");
         }
     }
 
-	private static boolean handleCd(String input) {
-        if (!input.startsWith("cd")) return false;
-
-        String[] parts = input.split("\\s+", 2);
-        Path newDir;
-        if (parts.length == 1 || parts[1].equals("~")) {
-            newDir = Paths.get(System.getProperty("user.home"));
-        } else {
-            newDir = currentDirectory.resolve(parts[1]).normalize();
-        }
-
-        if (Files.isDirectory(newDir)) {
-            currentDirectory = newDir;
-        } else {
-            System.out.println("cd: no such file or directory: " + parts[1]);
-        }
-        return true;
-    }
-
-    private static void processCommand(String input) {
-        if (input.startsWith("echo ")) {
-            System.out.println(handleEcho(input.substring(5).trim()));
-        } else if (input.startsWith("cat ")) {
-            handleCat(input.substring(4).trim());
-            System.out.flush();
-        } else if ("pwd".equalsIgnoreCase(input)) {
-            System.out.println(currentDirectory.toAbsolutePath().normalize());
-        } else if (input.startsWith("ls")) {
-        	if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                executeExternalProgram("cmd.exe /c dir " + input.substring(2).trim());
-            } else {
-                executeLsCommand(input);
-            }
-        } else if (input.startsWith("type ")) {
-            String cmd = input.substring(5).trim();
-            if (BUILTINS.contains(cmd)) {
-                System.out.println(cmd + " is a shell builtin");
-            } else {
-                findExecutable(cmd);
-            }
-        }else if ("help".equalsIgnoreCase(input)) {
-            System.out.println("Available commands: " + BUILTINS);
-        } else {
-            executeExternalProgram(input);
-        }
-    }
-
-    private static String handleEcho(String content) {
-        // Remove surrounding quotes if both are the same type (single or double)
-        if ((content.startsWith("'") && content.endsWith("'")) || (content.startsWith("\"") && content.endsWith("\""))) {
-            content = content.substring(1, content.length() - 1);
-        }
-        return content;
-    }
-
-
-
-    private static void handleCat(String content) {
-        List<String> fileNames = Arrays.asList(content.split("\\s+"));
-        for (String fileName : fileNames) {
-            Path file = currentDirectory.resolve(fileName).normalize();
-            if (!Files.exists(file)) {
-                System.out.println("cat: " + fileName + ": No such file or directory");
-                continue;
-            }
-            try (BufferedReader reader = Files.newBufferedReader(file)) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
-                }
-            } catch (IOException e) {
-            	System.out.println("cat: " + fileName + ": Error reading file");
-            }
-        }
-    }
-
-    private static void executeLsCommand(String command) {
-        executeLsCommandWithOutput(command, System.out);
-    }
-
-
-
-    private static void findExecutable(String command) {
-        String pathEnv = System.getenv("PATH");
-        if (pathEnv == null) {
-            System.out.println(command + ": not found");
-            return;
-        }
-
-        for (String dir : pathEnv.split(File.pathSeparator)) {
-            Path filePath = Paths.get(dir, command);
-            if (Files.isExecutable(filePath) && !Files.isDirectory(filePath)) {
-                System.out.println(command + " is " + filePath.toString());
+    static void type(String command) {
+        String[] Builtins = {"exit", "echo", "type", "pwd", "cd", "ls", "cat"};
+        for (String validCommand : Builtins) {
+            if (validCommand.equals(command)) {
+                System.out.printf("%s is a shell builtin\n", command);
                 return;
             }
         }
-        System.out.println(command + ": not found");
+        String[] PATH = System.getenv("PATH").split(File.pathSeparator);
+        for (String path : PATH) {
+            File[] directory = new File(path).listFiles();
+            if (directory != null) {
+                for (File file : directory) {
+                    if (file.getName().equals(command)) {
+                        System.out.printf("%s is %s\n", command, file.getAbsolutePath());
+                        return;
+                    }
+                }
+            }
+        }
+        System.out.printf("%s: not found\n", command);
     }
 
-    private static void executeExternalProgram(String input) {
-        try {
-        	List<String> cmd = new ArrayList<>();
-            if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                cmd.addAll(Arrays.asList("cmd.exe", "/c", input));
-            } else {
-                cmd.addAll(Arrays.asList("sh", "-c", input));
-            }
-
-            ProcessBuilder builder = new ProcessBuilder(cmd);
-            
-            builder.directory(currentDirectory.toFile());
-            Process process = builder.start();
-
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
+    static void changeDirectory(List<String> tokens) {
+        if (tokens.size() == 1) {
+            System.setProperty("user.dir", System.getProperty("user.home"));
+        } else {
+            String path = tokens.get(1);
+            if (path.charAt(0) == '~') {
+                String part1 = System.getProperty("user.home");
+                String part2 = path.substring(1).trim();
+                Path path1 = Paths.get(part1);
+                Path path2 = Paths.get(part2);
+                Path resolvedPath = path1.resolve(path2);
+                if (Files.exists(resolvedPath) && Files.isDirectory(resolvedPath)) {
+                    System.setProperty("user.dir", resolvedPath.toString());
+                } else {
+                    System.out.printf("cd: %s: No such file or directory\n", path);
                 }
+            } else {
+                Path workingDir = Paths.get(System.getProperty("user.dir"));
+                Path normalizedPath = Paths.get(path);
+                Path resolvedPath = workingDir.resolve(normalizedPath).normalize();
+                if (Files.exists(resolvedPath) && Files.isDirectory(resolvedPath)) {
+                    System.setProperty("user.dir", resolvedPath.toString());
+                } else {
+                    System.out.printf("cd: %s: No such file or directory\n", path);
+                }
+            }
+        }
+    }
+
+    static void lsCommand(List<String> tokens) {
+        try {
+            Path dir = Paths.get(System.getProperty("user.dir"));
+            if (tokens.size() > 1) {
+                dir = Paths.get(tokens.get(1));
+            }
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
+                for (Path entry : stream) {
+                    System.out.println(entry.getFileName());
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("ls: error reading directory");
+        }
+    }
+
+    static void catCommand(List<String> tokens) {
+        try {
+            if (tokens.size() > 1) {
+                for (int i = 1; i < tokens.size(); i++) {
+                    Path file = Paths.get(tokens.get(i));
+                    if (!Files.exists(file)) {
+                        System.out.println("cat: " + tokens.get(i) + ": No such file or directory");
+                        continue;
+                    }
+                    try (BufferedReader reader = Files.newBufferedReader(file)) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            System.out.println(line);
+                        }
+                    } catch (Exception e) {
+                        System.out.println("cat: " + tokens.get(i) + ": Error reading file");
+                    }
+                }
+            } else {
+                System.out.println("cat: missing file operand");
+            }
+        } catch (Exception e) {
+            System.out.println("cat: error reading file");
+        }
+    }
+
+    static void commandExec(List<String> tokens, String input) {
+        try {
+            ProcessBuilder builder = new ProcessBuilder(tokens);
+            builder.directory(Paths.get(System.getProperty("user.dir")).toFile());
+            Process process = builder.start();
+            BufferedReader stdoutReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = stdoutReader.readLine()) != null) {
+                System.out.println(line);
+            }
+            BufferedReader stderrReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            while ((line = stderrReader.readLine()) != null) {
+                System.err.println(line);
             }
             process.waitFor();
-        } catch (IOException | InterruptedException e) {
-            System.out.println("Error executing command: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.printf("%s: command not found\n", input);
         }
     }
 
-    private static void executeCommandWithRedirection(String input) throws InterruptedException {
-        String commandPart = input;
-        String stdoutFile = null;
-        String stderrFile = null;
+    public static List<String> tokenize(String input) {
+        List<String> tokens = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        boolean escaping = false;
 
-        // Extract stderr redirection
-        Matcher stderrMatcher = Pattern.compile("^(.*?)(\\s+2>)(\\s*[^>]+)").matcher(commandPart);
-        if (stderrMatcher.find()) {
-            commandPart = stderrMatcher.group(1).trim();
-            stderrFile = stderrMatcher.group(3).trim().replaceAll("^['\"]|['\"]$", "");
-        }
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
 
-        // Extract stdout redirection (1> or >)
-        Matcher stdoutMatcher = Pattern.compile("^(.*?)(\\s+(?:1>)|\\s+>)(\\s*[^>]+)").matcher(commandPart);
-        if (stdoutMatcher.find()) {
-            commandPart = stdoutMatcher.group(1).trim();
-            stdoutFile = stdoutMatcher.group(3).trim().replaceAll("^['\"]|['\"]$", "");
-        }
-
-        if (stdoutFile == null && stderrFile == null) {
-            System.out.println("Invalid redirection syntax.");
-            return;
-        }
-
-        File stdoutF = stdoutFile != null ? new File(stdoutFile) : null;
-        File stderrF = stderrFile != null ? new File(stderrFile) : null;
-
-        if (stdoutF != null && stdoutF.getParentFile() != null) stdoutF.getParentFile().mkdirs();
-        if (stderrF != null && stderrF.getParentFile() != null) stderrF.getParentFile().mkdirs();
-
-        try {
-            boolean handledManually = false;
-            boolean onlyStdout = stdoutF != null && stderrF == null;
-
-
-            // Manually handle only if both stdout and stderr go to same place (legacy behavior)
-            if ((stderrFile == null || stdoutFile != null && stdoutFile.equals(stderrFile))) {
-                if (stdoutF != null && stderrF == null) {
-                    try (PrintWriter writer = new PrintWriter(new FileWriter(stdoutF), true)) {
-                    	if (onlyStdout && (commandPart.equals("cat") || commandPart.startsWith("cat "))) {
-                            try (PrintWriter writer1 = new PrintWriter(new FileWriter(stdoutF), true)) {
-                                handleCatOnlyStdout(commandPart.substring(4).trim(), writer1);
-                            }
-                            return;
-
-                        }
-
-                        if (commandPart.equals("echo") || commandPart.startsWith("echo ")) {
-                            String echoContent = commandPart.length() == 4 ? "" : handleEcho(commandPart.substring(5).trim());
-                            writer.println(echoContent);
-                            writer.flush();
-                            return;
-                        }
-
-                        if (commandPart.equals("ls") || commandPart.startsWith("ls ")) {
-                            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                            PrintStream tempOut = new PrintStream(buffer);
-                            executeLsCommandWithOutput(commandPart, tempOut);
-                            writer.write(buffer.toString());
-                            writer.flush();
-                            return;
-                        }
-
-                        if (commandPart.startsWith("type ")) {
-                            String cmd = commandPart.substring(5).trim();
-                            if (BUILTINS.contains(cmd)) {
-                                writer.println(cmd + " is a shell builtin");
-                            } else {
-                                writer.println(cmd + ": not found");
-                            }
-                            writer.flush();
-                            return;
-                        }
-
-                        if ("pwd".equals(commandPart)) {
-                            writer.println(currentDirectory.toAbsolutePath().normalize());
-                            writer.flush();
-                            return;
-                        }
-
-                        handledManually = true;
-                    }
-                }
-            }
-
-            // Use ProcessBuilder for all other cases
-            if (!handledManually) {
-                ProcessBuilder builder;
-                if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                    builder = new ProcessBuilder("cmd.exe", "/c", commandPart);
-                } else {
-                    builder = new ProcessBuilder("sh", "-c", commandPart);
-                }
-
-                builder.directory(currentDirectory.toFile());
-
-                if (stdoutF != null) builder.redirectOutput(stdoutF);
-                if (stderrF != null) builder.redirectError(stderrF);
-
-                Process process = builder.start();
-                process.waitFor();
-            }
-
-        } catch (IOException e) {
-            System.out.println("Error executing command: " + e.getMessage());
-        }
-    }
-
-    private static void handleCatOnlyStdout(String content, PrintWriter writer) {
-        if (content.isEmpty()) return;
-
-        List<String> fileNames = Arrays.asList(content.split("\\s+"));
-        for (String fileName : fileNames) {
-            Path file = fileName.startsWith("/") ? Paths.get(fileName) : currentDirectory.resolve(fileName);
-            file = file.normalize();
-
-            if (!Files.exists(file)) {
-                System.err.println("cat: " + fileName + ": No such file or directory");
+            if (escaping) {
+                current.append(c);
+                escaping = false;
                 continue;
             }
-
-            try (BufferedReader reader = Files.newBufferedReader(file)) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    writer.println(line);
-                }
-            } catch (IOException e) {
-                System.err.println("cat: " + fileName + ": Error reading file");
-            }
-        }
-    }
-
-    private static void handleCatForRedirection(String content, PrintWriter writer) {
-        if (content.isEmpty()) return;
-
-        List<String> fileNames = Arrays.asList(content.split("\\s+"));
-
-        for (String originalName : fileNames) {
-        	
-        	Path filePath;
-        	
-        	if (originalName.startsWith("/")) {
-        	    filePath = Paths.get(originalName).normalize();
-        	} else {
-        	    filePath = currentDirectory.resolve(originalName).normalize();
-        	}
-
-
-            if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
-                // Write error to redirected output
-            	writer.println("cat: " + originalName + ": No such file or directory");
-                continue;
-            }
-
-            try (BufferedReader reader = Files.newBufferedReader(filePath)) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    writer.println(line);  // Write file content to redirected output
-                }
-            } catch (IOException e) {
-            	writer.println("cat: " + originalName + ": Error reading file");
-            }
-        }
-
-        writer.flush();
-    }
-
-
-
-    private static void executeLsCommandWithOutput(String command, PrintStream out) {
-        String[] tokens = command.trim().split("\\s+");
-
-        boolean singleColumn = false;
-        List<String> paths = new ArrayList<>();
-
-        for (int i = 1; i < tokens.length; i++) {
-            String token = tokens[i];
-            if (token.equals("-1")) {
-                singleColumn = true;
-            } else {
-                paths.add(token);
-            }
-        }
-
-        if (paths.isEmpty()) {
-            paths.add("."); // default to current directory
-        }
-
-        for (String pathStr : paths) {
-            Path dir = currentDirectory.resolve(pathStr).normalize();
-            if (!Files.isDirectory(dir)) {
-                out.println("ls: cannot access '" + pathStr + "': No such directory");
-                continue;
-            }
-
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
-                List<String> files = new ArrayList<>();
-                for (Path entry : stream) {
-                    files.add(entry.getFileName().toString());
-                }
-                Collections.sort(files);
-                for (String f : files) {
-                    if (singleColumn) {
-                        out.println(f);
+            if (c == '\\') {
+                if (inSingleQuote) {
+                    current.append(c);
+                } else if (inDoubleQuote) {
+                    if (i + 1 < input.length()) {
+                        char next = input.charAt(i + 1);
+                        if (next == '\\' || next == '"' || next == '$' || next == '\n') {
+                            i++;
+                            current.append(input.charAt(i));
+                        } else {
+                            current.append(c);
+                        }
                     } else {
-                        out.print(f + " ");
+                        current.append(c);
+                    }
+                } else {
+                    escaping = true;
+                }
+            } else if (c == '\'') {
+                if (inDoubleQuote) {
+                    current.append(c);
+                } else {
+                    inSingleQuote = !inSingleQuote;
+                }
+            } else if (c == '"') {
+                if (inSingleQuote) {
+                    current.append(c);
+                } else {
+                    inDoubleQuote = !inDoubleQuote;
+                }
+            } else if (Character.isWhitespace(c)) {
+                if (inSingleQuote || inDoubleQuote) {
+                    current.append(c);
+                } else {
+                    if (!current.isEmpty()) {
+                        tokens.add(current.toString());
+                        current.setLength(0);
                     }
                 }
-                if (!singleColumn) {
-                    out.println();
-                }
-            } catch (IOException e) {
-                out.println("ls: error reading directory: " + e.getMessage());
+            } else {
+                current.append(c);
             }
         }
+        if (!current.isEmpty()) {
+            tokens.add(current.toString());
+        }
+        return tokens;
     }
 
+    public static String handleRedirection(String input, PrintStream stdout) throws IOException {
+        if (input.contains(" 1> ") || input.contains(" > ")) {
+            String[] parts = input.split("( 1> )|( > )");
+            String commandPart = parts[0].trim();
+            String outputPathStr = parts[1].trim();
+            Path logPath = Paths.get(outputPathStr);
+            Path parentDir = logPath.getParent();
+            if (parentDir != null && !Files.exists(parentDir)) {
+                Files.createDirectories(parentDir);
+            }
+            if (Files.exists(logPath)) {
+                Files.delete(logPath);
+            }
+            Files.createFile(logPath);
+            System.setOut(new PrintStream(Files.newOutputStream(logPath)));
+            return commandPart;
+        } else {
+            return input;
+        }
+    }
 }
