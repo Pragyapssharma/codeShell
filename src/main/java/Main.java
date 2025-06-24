@@ -111,12 +111,15 @@ public class Main {
                 char c = content.charAt(i);
                 if (c == '\\' && i + 1 < content.length()) {
                     char next = content.charAt(i + 1);
-                    // Only escape certain characters
-                    if (next == '\\' || next == '\'' || next == '"') {
-                        result.append(next); // Remove the backslash, keep the next char
-                        i++; // skip next
-                    } else {
-                        result.append(c); // keep backslash if it's not escaping a valid char
+                    switch (next) {
+                        case '\\':
+                        case '\'':
+                        case '"':
+                            result.append(next);
+                            i++; // skip escaped char
+                            break;
+                        default:
+                            result.append(c); // keep the backslash
                     }
                 } else {
                     result.append(c);
@@ -125,11 +128,13 @@ public class Main {
             return result.toString();
 
         } else if (content.startsWith("'") && content.endsWith("'")) {
+            // Single-quoted strings: no escape handling
             return content.substring(1, content.length() - 1);
         }
 
         return content;
     }
+
 
 
 
