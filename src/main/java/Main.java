@@ -251,6 +251,7 @@ public class Main {
     }
 
 
+
     private record ExtractResult(List<String> commands, Streams streams) {
     }
 
