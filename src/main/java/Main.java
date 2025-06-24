@@ -183,14 +183,14 @@ public class Main {
         String stdoutFile = null;
         String stderrFile = null;
 
-        // Extract 2> stderr redirection
+        // Extract stderr redirection
         Matcher stderrMatcher = Pattern.compile("^(.*?)(\\s+2>\\s*[^>]+)").matcher(commandPart);
         if (stderrMatcher.find()) {
             commandPart = commandPart.replace(stderrMatcher.group(2), "").trim();
             stderrFile = stderrMatcher.group(2).replaceFirst("\\s*2>\\s*", "").trim().replaceAll("^['\"]|['\"]$", "");
         }
 
-        // Extract 1> or > stdout redirection
+        // Extract stdout redirection (1> or >)
         Matcher stdoutMatcher = Pattern.compile("^(.*?)(\\s+[1]?>\\s*[^>]+)").matcher(commandPart);
         if (stdoutMatcher.find()) {
             commandPart = commandPart.replace(stdoutMatcher.group(2), "").trim();
@@ -209,74 +209,82 @@ public class Main {
         if (stderrF != null && stderrF.getParentFile() != null) stderrF.getParentFile().mkdirs();
 
         try {
-            // Handle built-in commands manually for stdout only
-            if (stderrF == null && stdoutF != null) {
-                try (PrintWriter writer = new PrintWriter(new FileWriter(stdoutF), true)) {
-                    if (commandPart.equals("cat") || commandPart.startsWith("cat ")) {
-                        String args = commandPart.length() == 3 ? "" : commandPart.substring(4).trim();
-                        if (args.isEmpty()) {
+            boolean handledManually = false;
+
+            // Manually handle only if both stdout and stderr go to same place (legacy behavior)
+            if ((stderrFile == null || stdoutFile != null && stdoutFile.equals(stderrFile))) {
+                if (stdoutF != null && stderrF == null) {
+                    try (PrintWriter writer = new PrintWriter(new FileWriter(stdoutF), true)) {
+                        if (commandPart.equals("cat") || commandPart.startsWith("cat ")) {
+                            String args = commandPart.length() == 3 ? "" : commandPart.substring(4).trim();
+                            if (!args.isEmpty()) {
+                                handleCatForRedirection(args, writer);
+                            }
                             writer.flush();
                             return;
                         }
-                        handleCatForRedirection(args, writer);
-                        writer.flush();
-                        return;
-                    }
 
-                    if (commandPart.equals("echo") || commandPart.startsWith("echo ")) {
-                        String echoContent = commandPart.length() == 4 ? "" : handleEcho(commandPart.substring(5).trim());
-                        writer.println(echoContent);
-                        writer.flush();
-                        return;
-                    }
-
-                    if (commandPart.equals("ls") || commandPart.startsWith("ls ")) {
-                        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                        PrintStream tempOut = new PrintStream(buffer);
-                        executeLsCommandWithOutput(commandPart, tempOut);
-                        writer.write(buffer.toString());
-                        writer.flush();
-                        return;
-                    }
-
-                    if (commandPart.startsWith("type ")) {
-                        String cmd = commandPart.substring(5).trim();
-                        if (BUILTINS.contains(cmd)) {
-                            writer.println(cmd + " is a shell builtin");
-                        } else {
-                            writer.println(cmd + ": not found");
+                        if (commandPart.equals("echo") || commandPart.startsWith("echo ")) {
+                            String echoContent = commandPart.length() == 4 ? "" : handleEcho(commandPart.substring(5).trim());
+                            writer.println(echoContent);
+                            writer.flush();
+                            return;
                         }
-                        writer.flush();
-                        return;
-                    }
 
-                    if ("pwd".equals(commandPart)) {
-                        writer.println(currentDirectory.toAbsolutePath().normalize());
-                        writer.flush();
-                        return;
+                        if (commandPart.equals("ls") || commandPart.startsWith("ls ")) {
+                            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                            PrintStream tempOut = new PrintStream(buffer);
+                            executeLsCommandWithOutput(commandPart, tempOut);
+                            writer.write(buffer.toString());
+                            writer.flush();
+                            return;
+                        }
+
+                        if (commandPart.startsWith("type ")) {
+                            String cmd = commandPart.substring(5).trim();
+                            if (BUILTINS.contains(cmd)) {
+                                writer.println(cmd + " is a shell builtin");
+                            } else {
+                                writer.println(cmd + ": not found");
+                            }
+                            writer.flush();
+                            return;
+                        }
+
+                        if ("pwd".equals(commandPart)) {
+                            writer.println(currentDirectory.toAbsolutePath().normalize());
+                            writer.flush();
+                            return;
+                        }
+
+                        handledManually = true;
                     }
                 }
             }
 
-            // For external commands or if stderr redirection is needed
-            ProcessBuilder builder;
-            if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                builder = new ProcessBuilder("cmd.exe", "/c", commandPart);
-            } else {
-                builder = new ProcessBuilder("sh", "-c", commandPart);
+            // Use ProcessBuilder for all other cases
+            if (!handledManually) {
+                ProcessBuilder builder;
+                if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                    builder = new ProcessBuilder("cmd.exe", "/c", commandPart);
+                } else {
+                    builder = new ProcessBuilder("sh", "-c", commandPart);
+                }
+
+                builder.directory(currentDirectory.toFile());
+
+                if (stdoutF != null) builder.redirectOutput(stdoutF);
+                if (stderrF != null) builder.redirectError(stderrF);
+
+                Process process = builder.start();
+                process.waitFor();
             }
-
-            builder.directory(currentDirectory.toFile());
-            if (stdoutF != null) builder.redirectOutput(stdoutF);
-            if (stderrF != null) builder.redirectError(stderrF);
-
-            Process process = builder.start();
-            process.waitFor();
 
         } catch (IOException e) {
             System.out.println("Error executing command: " + e.getMessage());
         }
     }
+
 
 
     private static void handleCatForRedirection(String content, PrintWriter writer) {
