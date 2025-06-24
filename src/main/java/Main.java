@@ -130,13 +130,13 @@ public class Main {
 
             if (c == '\'' && !inDoubleQuote) {
                 inSingleQuote = !inSingleQuote;
-                // Skip appending quote
+                // Skip adding quote char
                 continue;
             }
 
             if (c == '"' && !inSingleQuote) {
                 inDoubleQuote = !inDoubleQuote;
-                // Skip appending quote
+                // Skip adding quote char
                 continue;
             }
 
@@ -157,6 +157,7 @@ public class Main {
 
         return tokens;
     }
+
 
 
 
