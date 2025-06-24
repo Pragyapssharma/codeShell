@@ -254,22 +254,28 @@ public class Main {
 
                 
                 static void lsCommand(String input) {
-                    // tokenize the input after "ls"
                     List<String> args = tokenize(input);
-                    // args.get(0) should be "ls"
                     List<String> params = args.size() > 1 ? args.subList(1, args.size()) : List.of();
 
+                    List<String> options = new ArrayList<>();
+                    List<String> paths = new ArrayList<>();
+
+                    // Separate options (start with '-') and paths
+                    for (String param : params) {
+                        if (param.startsWith("-")) {
+                            options.add(param);
+                        } else {
+                            paths.add(param);
+                        }
+                    }
+
+                    // For now, ignore options (no error)
+                    // If multiple paths given, only handle the first for simplicity
                     Path dir;
-                    if (params.isEmpty()) {
-                        // no argument: use current dir
+                    if (paths.isEmpty()) {
                         dir = getPath(System.getProperty("user.dir"));
                     } else {
-                        // Check if first param is an option (starts with '-')
-                        if (params.get(0).startsWith("-")) {
-                            System.out.println("ls: options not supported yet");
-                            return;
-                        }
-                        dir = getPath(params.get(0));
+                        dir = getPath(paths.get(0));
                         if (!dir.isAbsolute()) {
                             dir = getPath(System.getProperty("user.dir")).resolve(dir);
                         }
@@ -278,11 +284,11 @@ public class Main {
                     dir = dir.toAbsolutePath().normalize();
 
                     if (!Files.exists(dir)) {
-                        System.out.printf("ls: cannot access '%s': No such file or directory\n", dir);
+                        System.out.printf("ls: %s: No such file or directory\n", paths.isEmpty() ? "" : paths.get(0));
                         return;
                     }
                     if (!Files.isDirectory(dir)) {
-                        System.out.printf("ls: cannot access '%s': Not a directory\n", dir);
+                        System.out.printf("ls: %s: Not a directory\n", paths.get(0));
                         return;
                     }
 
@@ -292,7 +298,6 @@ public class Main {
                         System.out.println("ls: error reading directory");
                     }
                 }
-
 
                 
                 static void helpCommand() {
