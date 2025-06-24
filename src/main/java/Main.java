@@ -9,7 +9,7 @@ import java.util.Scanner;
 public class Main {
   public static void main(String[] args) throws Exception {
     
-	System.out.print("$ ");
+//	System.out.print("$ ");
     
 	Scanner scanner = new Scanner(System.in);
     final PrintStream stdout = System.out;
@@ -19,7 +19,7 @@ public class Main {
     {
     	System.setOut(stdout);
   		System.setErr(stderr);
-//  		System.out.print("$ ");
+  		System.out.print("$ ");
   		
   		if (!scanner.hasNextLine()) break;
     	
@@ -33,7 +33,7 @@ public class Main {
   	// Parse and handle redirections for stderr (2>) and stdout (1>/ >)
         // We'll extract stderr redirection target, stdout redirection target
         String errorRedirectPath = null;
-        String outputRedirectPath = null;
+//        String outputRedirectPath = null;
         String commandLine = rawInput;
 
         // 1) Parse stderr redirection "2> file"
@@ -54,8 +54,8 @@ public class Main {
             }
         }
   		
-      String input = handleRedirection(rawInput, stdout);
-      List<String> tokens = tokenize(input);
+        List<String> tokens = tokenize(commandLine);
+        if (tokens.isEmpty()) continue;
       
       if (tokens.isEmpty()) continue;
       
