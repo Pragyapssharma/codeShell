@@ -112,7 +112,11 @@ public class Main {
                     result.append(c);
                     inEscape = false;
                 } else if (c == '\\') {
-                    inEscape = true;
+                    if(i == content.length() - 2) {
+                        // ignore the backslash at the end
+                    } else {
+                        inEscape = true;
+                    }
                 } else {
                     result.append(c);
                 }
