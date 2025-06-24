@@ -30,39 +30,55 @@ public class Main {
             continue;
         }
   		
+  	// Parse and handle redirections for stderr (2>) and stdout (1>/ >)
+        // We'll extract stderr redirection target, stdout redirection target
+        String errorRedirectPath = null;
+        String outputRedirectPath = null;
+        String commandLine = rawInput;
+
+        // 1) Parse stderr redirection "2> file"
+        int idxErr = commandLine.indexOf(" 2> ");
+        if (idxErr == -1) {
+            idxErr = commandLine.indexOf(" 2>");
+        }
+        if (idxErr != -1) {
+            String[] parts = commandLine.split(" 2> ", 2);
+            commandLine = parts[0].trim();
+            errorRedirectPath = parts[1].trim();
+
+            // In case there's more after the file (like 1>), remove it:
+            // Only keep first token as path
+            int spaceAfter = errorRedirectPath.indexOf(' ');
+            if (spaceAfter != -1) {
+                errorRedirectPath = errorRedirectPath.substring(0, spaceAfter);
+            }
+        }
+  		
       String input = handleRedirection(rawInput, stdout);
       List<String> tokens = tokenize(input);
       
       if (tokens.isEmpty()) continue;
       
       String argsCleaned = String.join(" ", tokens);
-      String command = argsCleaned.split(" ")[0];
-//      String command = tokens.get(0);
+//      String command = argsCleaned.split(" ")[0];
+      String command = tokens.get(0);
       
       switch (command) {
-                case "exit" -> System.exit(0);
-                case "echo" -> {
-                    String[] echoParts = argsCleaned.split(" ", 2);
-                    if (echoParts.length > 1) {
-                        System.out.println(echoParts[1]);
-                    } else {
-                        System.out.println();  // just print newline for empty echo
-                    }
-                }
-                case "type" -> type(argsCleaned);
-                case "pwd" -> System.out.println(getPath(System.getProperty("user.dir")).toAbsolutePath().normalize());
-                case "cd" -> {
-                    String[] cdParts = argsCleaned.split(" ", 2);
-                    if (cdParts.length > 1) {
-                        changeDirectory(cdParts[1]);
-                    } else {
-                        System.out.println("cd: missing operand");
-                    }
-                }
-                case "ls" -> lsCommand(argsCleaned);
-                case "help" -> helpCommand();
-                default -> commandExec(tokens, input);
-            }
+      case "exit" -> System.exit(0);
+      case "echo" -> {
+          if (tokens.size() > 1) System.out.println(String.join(" ", tokens.subList(1, tokens.size())));
+          else System.out.println();
+      }
+      case "type" -> type(String.join(" ", tokens));
+      case "pwd" -> System.out.println(Paths.get(System.getProperty("user.dir")).toAbsolutePath().normalize());
+      case "cd" -> {
+          if (tokens.size() > 1) changeDirectory(tokens.get(1));
+          else System.out.println("cd: missing operand");
+      }
+      case "ls" -> lsCommand(String.join(" ", tokens));
+      case "help" -> helpCommand();
+      default -> commandExec(tokens, errorRedirectPath);
+  }
             
       		
             
@@ -121,26 +137,51 @@ public class Main {
 	}
 
 
-                static void commandExec(List<String> args, String input) {
-                  try {
-                    ProcessBuilder builder = new ProcessBuilder(args);
-                    Process process = builder.start();
-                    BufferedReader stdoutReader = new BufferedReader(
-                        new InputStreamReader(process.getInputStream()));
-                    String line;
-                    while ((line = stdoutReader.readLine()) != null) {
-                      System.out.println(line);
-                    }
-                    BufferedReader stderrReader = new BufferedReader(
-                        new InputStreamReader(process.getErrorStream()));
-                    while ((line = stderrReader.readLine()) != null) {
-                      System.err.println(line);
-                    }
-                    process.waitFor();
-                  } catch (Exception e) {
-                    System.err.printf("%s: command not found\n", input);
+  static void commandExec(List<String> args, String errorRedirectPath) {
+      try {
+          ProcessBuilder builder = new ProcessBuilder(args);
+          builder.directory(new File(System.getProperty("user.dir")));
+
+          if (errorRedirectPath != null) {
+              Path errPath = Paths.get(errorRedirectPath);
+              // Create parent directories if needed
+              if (errPath.getParent() != null && !Files.exists(errPath.getParent())) {
+                  Files.createDirectories(errPath.getParent());
+              }
+              // Redirect process stderr to file
+              builder.redirectError(errPath.toFile());
+          } else {
+              builder.redirectError(ProcessBuilder.Redirect.PIPE);
+          }
+
+          builder.redirectOutput(ProcessBuilder.Redirect.PIPE);
+
+          Process process = builder.start();
+
+          // Read and print stdout of process
+          try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+              String line;
+              while ((line = reader.readLine()) != null) {
+                  System.out.println(line);
+              }
+          }
+
+          // If no stderr redirection, print stderr here
+          if (errorRedirectPath == null) {
+              try (BufferedReader errReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                  String errLine;
+                  while ((errLine = errReader.readLine()) != null) {
+                      System.err.println(errLine);
                   }
-                }
+              }
+          }
+
+          process.waitFor();
+
+      } catch (Exception e) {
+          System.err.printf("%s: command not found\n", String.join(" ", args));
+      }
+  }
 
                 static void changeDirectory(String path) {
                   if (path.charAt(0) == '~') {
