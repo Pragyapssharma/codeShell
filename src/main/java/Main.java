@@ -13,6 +13,7 @@ public class Main {
     
 	Scanner scanner = new Scanner(System.in);
     final PrintStream stdout = System.out;
+    final PrintStream stderr = System.err;
     
     while (scanner.hasNextLine()) 
     {
@@ -52,6 +53,7 @@ public class Main {
             }
             
       		System.setOut(stdout);
+      		System.setErr(stderr);
             System.out.print("$ ");
         }
     }
@@ -231,7 +233,25 @@ public class Main {
                 }
                 
                 public static String handleRedirection(String input, PrintStream stdout) throws IOException {
-                    // Support redirecting stdout: " > " or " 1> "
+                    // Redirect stderr (2>)
+                    if (input.contains(" 2> ")) {
+                        String[] parts = input.split(" 2> ", 2);
+                        String commandPart = parts[0].trim();
+                        String errorPathStr = parts[1].trim();
+                        Path errorPath = Paths.get(errorPathStr);
+                        Path parentDir = errorPath.getParent();
+                        if (parentDir != null && !Files.exists(parentDir)) {
+                            Files.createDirectories(parentDir);
+                        }
+                        if (Files.exists(errorPath)) {
+                            Files.delete(errorPath);
+                        }
+                        Files.createFile(errorPath);
+                        System.setErr(new PrintStream(Files.newOutputStream(errorPath)));
+                        return commandPart;
+                    }
+
+                    // Redirect stdout (1> or >)
                     if (input.contains(" 1> ") || input.contains(" > ")) {
                         String[] parts = input.split("( 1> )|( > )", 2);
                         String commandPart = parts[0].trim();
@@ -248,27 +268,10 @@ public class Main {
                         System.setOut(new PrintStream(Files.newOutputStream(logPath)));
                         return commandPart;
                     }
-                    // Support redirecting stderr: " 2> "
-                    else if (input.contains(" 2> ")) {
-                        String[] parts = input.split(" 2> ", 2);
-                        String commandPart = parts[0].trim();
-                        String errorPathStr = parts[1].trim();
-                        Path errorPath = Paths.get(errorPathStr);
-                        Path parentDir = errorPath.getParent();
-                        if (parentDir != null && !Files.exists(parentDir)) {
-                            Files.createDirectories(parentDir);
-                        }
-                        if (Files.exists(errorPath)) {
-                            Files.delete(errorPath);
-                        }
-                        Files.createFile(errorPath);
-                        System.setErr(new PrintStream(Files.newOutputStream(errorPath)));
-                        return commandPart;
-                    }
-                    else {
-                        return input;
-                    }
+
+                    return input;
                 }
+
 
 
                 
