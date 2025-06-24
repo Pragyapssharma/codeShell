@@ -107,42 +107,57 @@ public class Main {
         }
     }
 
-    static List<String> tokenize(String input) {
+    public static List<String> tokenize(String input) {
         List<String> tokens = new ArrayList<>();
-        StringBuilder cur = new StringBuilder();
-        boolean sq = false, dq = false, esc = false;
+        StringBuilder current = new StringBuilder();
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        boolean escaping = false;
 
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);
-            if (esc) {
-                cur.append(c);
-                esc = false;
+
+            if (escaping) {
+                current.append(c);
+                escaping = false;
                 continue;
             }
-            if (c == '\\' && !sq) {
-                esc = true;
+
+            if (c == '\\' && !inSingleQuote) {
+                escaping = true;
                 continue;
             }
-            if (c == '\'' && !dq) {
-                sq = !sq;
+
+            if (c == '\'' && !inDoubleQuote) {
+                inSingleQuote = !inSingleQuote;
+                // Don't add quote to token
                 continue;
             }
-            if (c == '"' && !sq) {
-                dq = !dq;
+
+            if (c == '"' && !inSingleQuote) {
+                inDoubleQuote = !inDoubleQuote;
+                // Don't add quote to token
                 continue;
             }
-            if (Character.isWhitespace(c) && !sq && !dq) {
-                if (cur.length() > 0) {
-                    tokens.add(cur.toString());
-                    cur.setLength(0);
+
+            if (Character.isWhitespace(c) && !inSingleQuote && !inDoubleQuote) {
+                if (current.length() > 0) {
+                    tokens.add(current.toString());
+                    current.setLength(0);
                 }
-            } else {
-                cur.append(c);
+                continue;
             }
+
+            current.append(c);
         }
-        if (cur.length() > 0) tokens.add(cur.toString());
+
+        if (current.length() > 0) {
+            tokens.add(current.toString());
+        }
+
         return tokens;
     }
+
 
     static PrintStream handleRedirection(String input) throws IOException {
         if (input.contains(" 1> ") || input.contains(" > ")) {
