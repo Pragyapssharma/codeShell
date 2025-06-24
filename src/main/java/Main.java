@@ -193,8 +193,8 @@ public class Main {
         // Extract stdout redirection (1> or >)
         Matcher stdoutMatcher = Pattern.compile("^(.*?)(\\s+[1]?>\\s*[^>]+)").matcher(commandPart);
         if (stdoutMatcher.find()) {
-            commandPart = commandPart.replace(stdoutMatcher.group(2), "").trim();
-            stdoutFile = stdoutMatcher.group(2).replaceFirst("\\s*[1]?>\\s*", "").trim().replaceAll("^['\"]|['\"]$", "");
+        	commandPart = commandPart.replace(stdoutMatcher.group(2) + stdoutMatcher.group(3), "").trim();
+            stdoutFile = stdoutMatcher.group(3).trim().replaceAll("^['\"]|['\"]$", "");
         }
 
         if (stdoutFile == null && stderrFile == null) {
@@ -210,18 +210,19 @@ public class Main {
 
         try {
             boolean handledManually = false;
+            boolean onlyStdout = stdoutF != null && stderrF == null;
+
 
             // Manually handle only if both stdout and stderr go to same place (legacy behavior)
             if ((stderrFile == null || stdoutFile != null && stdoutFile.equals(stderrFile))) {
                 if (stdoutF != null && stderrF == null) {
                     try (PrintWriter writer = new PrintWriter(new FileWriter(stdoutF), true)) {
-                        if (commandPart.equals("cat") || commandPart.startsWith("cat ")) {
-                            String args = commandPart.length() == 3 ? "" : commandPart.substring(4).trim();
-                            if (!args.isEmpty()) {
-                                handleCatForRedirection(args, writer);
+                    	if (onlyStdout && (commandPart.equals("cat") || commandPart.startsWith("cat "))) {
+                            try (PrintWriter writer1 = new PrintWriter(new FileWriter(stdoutF), true)) {
+                                handleCatOnlyStdout(commandPart.substring(4).trim(), writer1);
                             }
-                            writer.flush();
                             return;
+
                         }
 
                         if (commandPart.equals("echo") || commandPart.startsWith("echo ")) {
@@ -285,7 +286,29 @@ public class Main {
         }
     }
 
+    private static void handleCatOnlyStdout(String content, PrintWriter writer) {
+        if (content.isEmpty()) return;
 
+        List<String> fileNames = Arrays.asList(content.split("\\s+"));
+        for (String fileName : fileNames) {
+            Path file = fileName.startsWith("/") ? Paths.get(fileName) : currentDirectory.resolve(fileName);
+            file = file.normalize();
+
+            if (!Files.exists(file)) {
+                System.err.println("cat: " + fileName + ": No such file or directory");
+                continue;
+            }
+
+            try (BufferedReader reader = Files.newBufferedReader(file)) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    writer.println(line);
+                }
+            } catch (IOException e) {
+                System.err.println("cat: " + fileName + ": Error reading file");
+            }
+        }
+    }
 
     private static void handleCatForRedirection(String content, PrintWriter writer) {
         if (content.isEmpty()) return;
