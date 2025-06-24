@@ -19,14 +19,14 @@ public class Main {
     {
     	System.setOut(stdout);
   		System.setErr(stderr);
-  		System.out.print("$ ");
+//  		System.out.print("$ ");
   		
   		if (!scanner.hasNextLine()) break;
     	
   		String rawInput = scanner.nextLine();
         
   		if (rawInput.trim().isEmpty()) {
-//            System.out.print("$ ");
+            System.out.print("$ ");
             continue;
         }
   		
@@ -64,7 +64,7 @@ public class Main {
                 default -> commandExec(tokens, input);
             }
             
-      		
+      System.out.print("$ ");
             
         }
     }
