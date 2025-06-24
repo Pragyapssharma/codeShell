@@ -179,8 +179,40 @@ public class Main {
     }
 
     private static void executeCommandWithRedirection(String input) throws InterruptedException {
+    	
+    	String commandPart = input;
+        String stdoutFile = null;
+        String stderrFile = null;
     	Pattern pattern = Pattern.compile("^(.*?)\\s*(?:1?>|>)\\s*(.*?)$");
         Matcher matcher = pattern.matcher(input);
+        
+
+        // Match and extract stderr redirection (2>)
+        Pattern stderrPattern = Pattern.compile("^(.*?)\\s*2>\\s*([^>]+)$");
+        Matcher stderrMatcher = stderrPattern.matcher(commandPart);
+        if (stderrMatcher.find()) {
+            commandPart = stderrMatcher.group(1).trim();
+            stderrFile = stderrMatcher.group(2).trim().replaceAll("^['\"]|['\"]$", "");
+        }
+
+        // Match and extract stdout redirection (>)
+        Pattern stdoutPattern = Pattern.compile("^(.*?)\\s*>\\s*([^>]+)$");
+        Matcher stdoutMatcher = stdoutPattern.matcher(commandPart);
+        if (stdoutMatcher.find()) {
+            commandPart = stdoutMatcher.group(1).trim();
+            stdoutFile = stdoutMatcher.group(2).trim().replaceAll("^['\"]|['\"]$", "");
+        }
+
+        File stdoutF = stdoutFile != null ? new File(stdoutFile) : null;
+        File stderrF = stderrFile != null ? new File(stderrFile) : null;
+
+        // Create parent directories if needed
+        if (stdoutF != null && stdoutF.getParentFile() != null) {
+            stdoutF.getParentFile().mkdirs();
+        }
+        if (stderrF != null && stderrF.getParentFile() != null) {
+            stderrF.getParentFile().mkdirs();
+        }
         
         if (!matcher.matches()) {
             System.out.println("Invalid redirection syntax.");
@@ -258,6 +290,9 @@ public class Main {
             builder.directory(currentDirectory.toFile());
             builder.redirectOutput(file);
             builder.redirectError(file);
+            
+            if (stdoutF != null) builder.redirectOutput(stdoutF);
+            if (stderrF != null) builder.redirectError(stderrF);
 
             Process process = builder.start();
             process.waitFor();
