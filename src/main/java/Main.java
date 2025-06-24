@@ -231,10 +231,9 @@ public class Main {
                 }
                 
                 public static String handleRedirection(String input, PrintStream stdout) throws IOException {
-                    // Regex split on first '>' possibly preceded by '1', with optional spaces
-                    String regex = "\\s*1?>\\s*";
-                    String[] parts = input.split(regex, 2);
-                    if (parts.length == 2) {
+                    // Support redirecting stdout: " > " or " 1> "
+                    if (input.contains(" 1> ") || input.contains(" > ")) {
+                        String[] parts = input.split("( 1> )|( > )", 2);
                         String commandPart = parts[0].trim();
                         String outputPathStr = parts[1].trim();
                         Path logPath = Paths.get(outputPathStr);
@@ -249,8 +248,28 @@ public class Main {
                         System.setOut(new PrintStream(Files.newOutputStream(logPath)));
                         return commandPart;
                     }
-                    return input;
+                    // Support redirecting stderr: " 2> "
+                    else if (input.contains(" 2> ")) {
+                        String[] parts = input.split(" 2> ", 2);
+                        String commandPart = parts[0].trim();
+                        String errorPathStr = parts[1].trim();
+                        Path errorPath = Paths.get(errorPathStr);
+                        Path parentDir = errorPath.getParent();
+                        if (parentDir != null && !Files.exists(parentDir)) {
+                            Files.createDirectories(parentDir);
+                        }
+                        if (Files.exists(errorPath)) {
+                            Files.delete(errorPath);
+                        }
+                        Files.createFile(errorPath);
+                        System.setErr(new PrintStream(Files.newOutputStream(errorPath)));
+                        return commandPart;
+                    }
+                    else {
+                        return input;
+                    }
                 }
+
 
                 
                 static void lsCommand(String input) {
