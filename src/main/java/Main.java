@@ -107,29 +107,30 @@ public class Main {
             content = content.substring(1, content.length() - 1);
 
             StringBuilder result = new StringBuilder();
-            boolean escaping = false;
             for (int i = 0; i < content.length(); i++) {
                 char c = content.charAt(i);
-                if (escaping) {
-                    // Add the character as-is, preserving escape
-                    result.append(c);
-                    escaping = false;
-                } else if (c == '\\') {
-                    // Start escape sequence
-                    result.append('\\');
-                    escaping = true;
+                if (c == '\\' && i + 1 < content.length()) {
+                    char next = content.charAt(i + 1);
+                    // Only escape certain characters
+                    if (next == '\\' || next == '\'' || next == '"') {
+                        result.append(next); // Remove the backslash, keep the next char
+                        i++; // skip next
+                    } else {
+                        result.append(c); // keep backslash if it's not escaping a valid char
+                    }
                 } else {
                     result.append(c);
                 }
             }
-
             return result.toString();
+
         } else if (content.startsWith("'") && content.endsWith("'")) {
-            return content.substring(1, content.length() - 1); // No escape parsing in single quotes
+            return content.substring(1, content.length() - 1);
         }
 
         return content;
     }
+
 
 
     private static void handleCat(String content) {
