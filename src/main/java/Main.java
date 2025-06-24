@@ -144,51 +144,63 @@ public class Main {
 		System.out.printf("%s: not found\n", command);
 	}
 
-	static void commandExec(List<String> args, String errorRedirectPath) {
-		try {
-			ProcessBuilder builder = new ProcessBuilder(args);
-			builder.directory(new File(System.getProperty("user.dir")));
+	static void commandExec(List<String> args, String rawInput) {
+	    try {
+	        // Parse redirections from rawInput (not tokens)
+	        String commandPart = rawInput;
+	        Path errorRedirect = null;
+	        Path outputRedirect = null;
 
-			if (errorRedirectPath != null) {
-				Path errPath = Paths.get(errorRedirectPath);
-				// Create parent directories if needed
-				if (errPath.getParent() != null && !Files.exists(errPath.getParent())) {
-					Files.createDirectories(errPath.getParent());
-				}
-				// Redirect process stderr to file
-				builder.redirectError(errPath.toFile());
-			} else {
-				builder.redirectError(ProcessBuilder.Redirect.PIPE);
-			}
+	        // Detect stderr redirection
+	        if (rawInput.contains(" 2> ")) {
+	            String[] parts = rawInput.split(" 2> ", 2);
+	            commandPart = parts[0].trim();
+	            String errFile = parts[1].trim().split(" ")[0];  // get first token after 2>
+	            errorRedirect = Paths.get(errFile);
+	        }
 
-			builder.redirectOutput(ProcessBuilder.Redirect.PIPE);
+	        // Detect stdout redirection (1> or >)
+	        if (commandPart.contains(" 1> ") || commandPart.contains(" > ")) {
+	            String[] parts = commandPart.split("( 1> )|( > )", 2);
+	            commandPart = parts[0].trim();
+	            String outFile = parts[1].trim().split(" ")[0];
+	            outputRedirect = Paths.get(outFile);
+	        }
 
-			Process process = builder.start();
+	        // Tokenize the command part again for ProcessBuilder
+	        List<String> commandArgs = tokenize(commandPart);
 
-			// Read and print stdout of process
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-				String line;
-				while ((line = reader.readLine()) != null) {
-					System.out.println(line);
-				}
-			}
+	        ProcessBuilder builder = new ProcessBuilder(commandArgs);
 
-			// If no stderr redirection, print stderr here
-			if (errorRedirectPath == null) {
-				try (BufferedReader errReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-					String errLine;
-					while ((errLine = errReader.readLine()) != null) {
-						System.err.println(errLine);
-					}
-				}
-			}
+	        // Set working directory to current dir property
+	        builder.directory(new File(System.getProperty("user.dir")));
 
-			process.waitFor();
+	        // Set output redirection
+	        if (outputRedirect != null) {
+	            Files.createDirectories(outputRedirect.getParent());
+	            builder.redirectOutput(outputRedirect.toFile());
+	        } else {
+	            builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+	        }
 
-		} catch (Exception e) {
-			System.err.printf("%s: command not found\n", String.join(" ", args));
-		}
+	        // Set error redirection
+	        if (errorRedirect != null) {
+	            Files.createDirectories(errorRedirect.getParent());
+	            builder.redirectError(errorRedirect.toFile());
+	        } else {
+	            builder.redirectError(ProcessBuilder.Redirect.INHERIT);
+	        }
+
+	        Process process = builder.start();
+
+	        // If streams are inherited, no need to manually read - output will appear on console
+
+	        process.waitFor();
+	    } catch (Exception e) {
+	        System.err.printf("%s: command not found\n", rawInput);
+	    }
 	}
+
 
 	static void changeDirectory(String path) {
 		if (path.charAt(0) == '~') {
