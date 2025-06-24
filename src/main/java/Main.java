@@ -84,7 +84,7 @@ public class Main {
 			}
 			case "ls" -> lsCommand(argsCleaned);
 			case "help" -> helpCommand();
-			default -> commandExec(tokens, rawInput); // rawInput for error reporting
+			default -> commandExec(tokens);
 			}
 
 			// Always print prompt after command finishes
@@ -144,62 +144,66 @@ public class Main {
 		System.out.printf("%s: not found\n", command);
 	}
 
-	static void commandExec(List<String> args, String rawInput) {
+	private static void commandExec(List<String> tokens) {
 	    try {
-	        // Parse redirections from rawInput (not tokens)
-	        String commandPart = rawInput;
-	        Path errorRedirect = null;
-	        Path outputRedirect = null;
+	        RedirectionResult result = parseCommandWithRedirection(tokens);
 
-	        // Detect stderr redirection
-	        if (rawInput.contains(" 2> ")) {
-	            String[] parts = rawInput.split(" 2> ", 2);
-	            commandPart = parts[0].trim();
-	            String errFile = parts[1].trim().split(" ")[0];  // get first token after 2>
-	            errorRedirect = Paths.get(errFile);
-	        }
-
-	        // Detect stdout redirection (1> or >)
-	        if (commandPart.contains(" 1> ") || commandPart.contains(" > ")) {
-	            String[] parts = commandPart.split("( 1> )|( > )", 2);
-	            commandPart = parts[0].trim();
-	            String outFile = parts[1].trim().split(" ")[0];
-	            outputRedirect = Paths.get(outFile);
-	        }
-
-	        // Tokenize the command part again for ProcessBuilder
-	        List<String> commandArgs = tokenize(commandPart);
-
-	        ProcessBuilder builder = new ProcessBuilder(commandArgs);
-
-	        // Set working directory to current dir property
+	        ProcessBuilder builder = new ProcessBuilder(result.commandArgs);
 	        builder.directory(new File(System.getProperty("user.dir")));
 
-	        // Set output redirection
-	        if (outputRedirect != null) {
-	            Files.createDirectories(outputRedirect.getParent());
-	            builder.redirectOutput(outputRedirect.toFile());
+	        if (result.stdoutFile != null) {
+	            Files.createDirectories(result.stdoutFile.getParentFile().toPath());
+	            builder.redirectOutput(result.stdoutFile);
 	        } else {
 	            builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
 	        }
 
-	        // Set error redirection
-	        if (errorRedirect != null) {
-	            Files.createDirectories(errorRedirect.getParent());
-	            builder.redirectError(errorRedirect.toFile());
+	        if (result.stderrFile != null) {
+	            Files.createDirectories(result.stderrFile.getParentFile().toPath());
+	            builder.redirectError(result.stderrFile);
 	        } else {
 	            builder.redirectError(ProcessBuilder.Redirect.INHERIT);
 	        }
 
 	        Process process = builder.start();
-
-	        // If streams are inherited, no need to manually read - output will appear on console
-
 	        process.waitFor();
 	    } catch (Exception e) {
-	        System.err.printf("%s: command not found\n", rawInput);
+	        System.err.println("Error executing command: " + e.getMessage());
 	    }
 	}
+	
+	
+	private static RedirectionResult parseCommandWithRedirection(List<String> tokens) {
+	    List<String> cmd = new ArrayList<>();
+	    File stdoutFile = null;
+	    File stderrFile = null;
+	    boolean expectRedirectFile = false;
+	    String redirectType = null; // "stdout" or "stderr"
+
+	    for (int i = 0; i < tokens.size(); i++) {
+	        String token = tokens.get(i);
+
+	        if ("2>".equals(token)) {
+	            redirectType = "stderr";
+	            expectRedirectFile = true;
+	        } else if ("1>".equals(token) || ">".equals(token)) {
+	            redirectType = "stdout";
+	            expectRedirectFile = true;
+	        } else if (expectRedirectFile) {
+	            File f = new File(token);
+	            if ("stdout".equals(redirectType)) {
+	                stdoutFile = f;
+	            } else if ("stderr".equals(redirectType)) {
+	                stderrFile = f;
+	            }
+	            expectRedirectFile = false;
+	        } else {
+	            cmd.add(token);
+	        }
+	    }
+	    return new RedirectionResult(cmd, stdoutFile, stderrFile);
+	}
+
 
 
 	static void changeDirectory(String path) {
