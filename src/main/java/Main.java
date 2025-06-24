@@ -89,13 +89,28 @@ public class Main {
 
     static void lsCommand(List<String> tokens) {
         try {
-            Path dir = Paths.get(System.getProperty("user.dir"));
-            if (tokens.size() > 1) {
-                dir = Paths.get(tokens.get(1));
+            Path dir;
+            boolean singleColumn = false;
+            int dirIndex = 1;
+            if (tokens.get(1).equals("-1")) {
+                singleColumn = true;
+                dirIndex = 2;
+            }
+            if (tokens.size() > dirIndex) {
+                dir = Paths.get(tokens.get(dirIndex));
+            } else {
+                dir = Paths.get(System.getProperty("user.dir"));
             }
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
                 for (Path entry : stream) {
-                    System.out.println(entry.getFileName());
+                    if (singleColumn) {
+                        System.out.println(entry.getFileName());
+                    } else {
+                        System.out.print(entry.getFileName() + " ");
+                    }
+                }
+                if (!singleColumn) {
+                    System.out.println();
                 }
             }
         } catch (Exception e) {
