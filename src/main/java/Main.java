@@ -9,8 +9,9 @@ import java.util.Scanner;
 public class Main {
   public static void main(String[] args) throws Exception {
     
-//	System.out.print("$ ");
-    
+	System.out.print("$ ");
+	System.out.flush();
+	
 	Scanner scanner = new Scanner(System.in);
     final PrintStream stdout = System.out;
     final PrintStream stderr = System.err;
@@ -19,7 +20,7 @@ public class Main {
     {
     	System.setOut(stdout);
   		System.setErr(stderr);
-  		System.out.print("$ ");
+//  		System.out.print("$ ");
   		
   		if (!scanner.hasNextLine()) break;
     	
