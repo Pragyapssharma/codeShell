@@ -104,21 +104,18 @@ public class Main {
 
     private static String handleEcho(String content) {
         if (content.startsWith("\"") && content.endsWith("\"")) {
-            content = content.substring(1, content.length() - 1);
             StringBuilder result = new StringBuilder();
-            boolean escapeNext = false;
-            for (char c : content.toCharArray()) {
-                if (escapeNext) {
+            boolean inEscape = false;
+            for (int i = 1; i < content.length() - 1; i++) {
+                char c = content.charAt(i);
+                if (inEscape) {
                     result.append(c);
-                    escapeNext = false;
+                    inEscape = false;
                 } else if (c == '\\') {
-                    escapeNext = true;
+                    inEscape = true;
                 } else {
                     result.append(c);
                 }
-            }
-            if (escapeNext) {
-                result.append('\\');
             }
             return result.toString();
         } else if (content.startsWith("'") && content.endsWith("'")) {
@@ -127,7 +124,6 @@ public class Main {
 
         return content;
     }
-
 
 
 
