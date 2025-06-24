@@ -103,29 +103,10 @@ public class Main {
     }
 
     private static String handleEcho(String content) {
-        if (content.startsWith("\"") && content.endsWith("\"")) {
-            StringBuilder result = new StringBuilder();
-            boolean inEscape = false;
-            for (int i = 1; i < content.length() - 1; i++) {
-                char c = content.charAt(i);
-                if (inEscape) {
-                    result.append(c);
-                    inEscape = false;
-                } else if (c == '\\') {
-                    if(i == content.length() - 2) {
-                        // ignore the backslash at the end
-                    } else {
-                        inEscape = true;
-                    }
-                } else {
-                    result.append(c);
-                }
-            }
-            return result.toString();
-        } else if (content.startsWith("'") && content.endsWith("'")) {
-            return content.substring(1, content.length() - 1);
+        // Remove surrounding quotes if both are the same type (single or double)
+        if ((content.startsWith("'") && content.endsWith("'")) || (content.startsWith("\"") && content.endsWith("\""))) {
+            content = content.substring(1, content.length() - 1);
         }
-
         return content;
     }
 
