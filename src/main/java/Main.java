@@ -184,16 +184,16 @@ public class Main {
         String stderrFile = null;
 
         // Extract stderr redirection
-        Matcher stderrMatcher = Pattern.compile("^(.*?)(\\s+2>\\s*[^>]+)").matcher(commandPart);
+        Matcher stderrMatcher = Pattern.compile("^(.*?)(\\s+2>)(\\s*[^>]+)").matcher(commandPart);
         if (stderrMatcher.find()) {
-            commandPart = commandPart.replace(stderrMatcher.group(2), "").trim();
-            stderrFile = stderrMatcher.group(2).replaceFirst("\\s*2>\\s*", "").trim().replaceAll("^['\"]|['\"]$", "");
+            commandPart = stderrMatcher.group(1).trim();
+            stderrFile = stderrMatcher.group(3).trim().replaceAll("^['\"]|['\"]$", "");
         }
 
         // Extract stdout redirection (1> or >)
-        Matcher stdoutMatcher = Pattern.compile("^(.*?)(\\s+[1]?>\\s*[^>]+)").matcher(commandPart);
+        Matcher stdoutMatcher = Pattern.compile("^(.*?)(\\s+(?:1>)|\\s+>)(\\s*[^>]+)").matcher(commandPart);
         if (stdoutMatcher.find()) {
-        	commandPart = commandPart.replace(stdoutMatcher.group(2) + stdoutMatcher.group(3), "").trim();
+            commandPart = stdoutMatcher.group(1).trim();
             stdoutFile = stdoutMatcher.group(3).trim().replaceAll("^['\"]|['\"]$", "");
         }
 
