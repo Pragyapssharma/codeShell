@@ -104,20 +104,33 @@ public class Main {
 
     private static String handleEcho(String content) {
         if (content.startsWith("\"") && content.endsWith("\"")) {
-            // Remove outer quotes
             content = content.substring(1, content.length() - 1);
-            
-            // Handle escaped characters within double quotes
-            content = content.replace("\\\"", "\"")
-                             .replace("\\\\", "\\")
-                             .replace("\\'", "'"); // only inside double quotes
+
+            StringBuilder result = new StringBuilder();
+            boolean escaping = false;
+            for (int i = 0; i < content.length(); i++) {
+                char c = content.charAt(i);
+                if (escaping) {
+                    // Add the character as-is, preserving escape
+                    result.append(c);
+                    escaping = false;
+                } else if (c == '\\') {
+                    // Start escape sequence
+                    result.append('\\');
+                    escaping = true;
+                } else {
+                    result.append(c);
+                }
+            }
+
+            return result.toString();
         } else if (content.startsWith("'") && content.endsWith("'")) {
-            // In single quotes, nothing is interpreted — return as-is without quotes
-            content = content.substring(1, content.length() - 1);
+            return content.substring(1, content.length() - 1); // No escape parsing in single quotes
         }
 
         return content;
     }
+
 
     private static void handleCat(String content) {
         List<String> fileNames = Arrays.asList(content.split("\\s+"));
