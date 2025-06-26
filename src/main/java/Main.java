@@ -168,7 +168,10 @@ public class Main {
 	        }
 
 	        Process process = builder.start();
-	        process.waitFor();
+	        int exitCode = process.waitFor();
+	        System.out.print("$ ");
+	        System.out.flush();
+//	        process.waitFor();
 	    } catch (Exception e) {
 	        System.err.println("Error executing command: " + e.getMessage());
 	    }
