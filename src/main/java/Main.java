@@ -9,6 +9,8 @@ import java.util.Scanner;
 public class Main {
 	public static void main(String[] args) throws Exception {
 
+		System.err.flush();
+		System.out.flush();
 		System.out.print("$ ");
 		System.out.flush();
 
@@ -86,13 +88,13 @@ public class Main {
 			case "help" -> helpCommand();
 			default -> commandExec(tokens);
 			}
-
+ 
 			// Always print prompt after command finishes
 			System.out.print("$ ");
 			System.out.flush();
 		}
 	}
-
+ 
 	static void type(String input) {
 		String[] builtins = { "exit", "echo", "type", "pwd", "cd", "help", "ls", "help" };
 
