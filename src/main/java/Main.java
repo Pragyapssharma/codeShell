@@ -78,7 +78,8 @@ public class Main {
 					System.err.println("cd: missing operand");
 				}
 			}
-			case "ls" -> lsCommand(argsCleaned);
+//			case "ls" -> lsCommand(argsCleaned);
+			case "ls" -> commandExec(redir);
 			case "help" -> helpCommand();
 			default -> commandExec(redir);
 			}
