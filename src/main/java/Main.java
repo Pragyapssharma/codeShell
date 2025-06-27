@@ -198,37 +198,59 @@ public class Main {
         return new RedirectionResult(cmd, stdoutFile, stderrFile);
     }
 
+    static void changeDirectory(String path) {
+    	if (path.charAt(0) == '~') {
+    		String home = System.getenv("HOME");
+    		if (home == null) {
+    			home = System.getenv("USERPROFILE");
+    		}
+    		Path resolvedPath = Paths.get(home).resolve(path.substring(1).trim()).normalize();
+    		if (Files.exists(resolvedPath) && Files.isDirectory(resolvedPath)) {
+    			System.setProperty("user.dir", resolvedPath.toString());
+    		} else {
+    			System.out.printf("cd: %s: No such file or directory\n", path);
+    		}
+    	} else {
+    		Path workingDir = Paths.get(System.getProperty("user.dir"));
+    		Path resolvedPath = workingDir.resolve(path).normalize();
+    		if (Files.exists(resolvedPath) && Files.isDirectory(resolvedPath)) {
+    			System.setProperty("user.dir", resolvedPath.toString());
+    		} else {
+    			System.out.printf("cd: %s: No such file or directory\n", path);
+    		}
+    	}
+    }
 
 
-	static void changeDirectory(String path) {
-		if (path.charAt(0) == '~') {
-			String part1 = System.getenv("HOME");
-
-			if (part1 == null) {
-				part1 = System.getenv("USERPROFILE");
-			}
-
-			String part2 = path.substring(1).trim();
-			Path path1 = getPath(part1);
-			Path path2 = getPath(part2);
-			Path resolvedPath = path1.resolve(path2);
-
-			if (Files.exists(resolvedPath) && Files.isDirectory(resolvedPath)) {
-				System.setProperty("user.dir", resolvedPath.toString());
-			} else {
-				System.out.printf("cd: %s: No such file or directory\n", path);
-			}
-		} else {
-			Path workingDir = getPath(System.getProperty("user.dir"));
-			Path normalizedPath = getPath(path);
-			Path resolvedPath = workingDir.resolve(normalizedPath);
-			if (Files.exists(resolvedPath) && Files.isDirectory(resolvedPath)) {
-				System.setProperty("user.dir", resolvedPath.toString());
-			} else {
-				System.out.printf("cd: %s: No such file or directory\n", path);
-			}
-		}
-	}
+//	static void changeDirectory(String path) {
+//		if (path.charAt(0) == '~') {
+//			String part1 = System.getenv("HOME");
+//
+//			if (part1 == null) {
+//				part1 = System.getenv("USERPROFILE");
+//			}
+//
+//			String part2 = path.substring(1).trim();
+//			Path path1 = getPath(part1);
+//			Path path2 = getPath(part2);
+//			Path resolvedPath = path1.resolve(path2);
+//
+//			if (Files.exists(resolvedPath) && Files.isDirectory(resolvedPath)) {
+//				System.setProperty("user.dir", resolvedPath.toString());
+//			} else {
+//				System.out.printf("cd: %s: No such file or directory\n", path);
+//			}
+//		} else {
+//			Path workingDir = getPath(System.getProperty("user.dir"));
+//			Path normalizedPath = getPath(path);
+//			Path resolvedPath = workingDir.resolve(normalizedPath).normalize();
+//			if (Files.exists(resolvedPath) && Files.isDirectory(resolvedPath)) {
+//				System.setProperty("user.dir", resolvedPath.toString());
+//			} else {
+//				System.out.printf("cd: %s: No such file or directory\n", path);
+//			}
+//		}
+//	}
 
 	static Path getPath(String path) {
 		return Paths.get(path);
