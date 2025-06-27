@@ -162,9 +162,18 @@ public class Main {
 
             Process process = builder.start();
             process.waitFor();
+        } catch (IOException e) {
+            // Typically means command not found
+            if (!result.commandArgs.isEmpty()) {
+                System.err.printf("%s: command not found\n", result.commandArgs.get(0));
+            } else {
+                System.err.println("Command not found");
+            }
         } catch (Exception e) {
+            // Handle other types of errors
             System.err.println("Error executing command: " + e.getMessage());
         }
+
     }
 
     private static RedirectionResult parseCommandWithRedirection(List<String> tokens) {
