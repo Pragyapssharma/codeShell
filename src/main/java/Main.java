@@ -33,40 +33,34 @@ public class Main {
 				continue;
 			}
 
-			// Parse and handle redirections for stderr (2>) and stdout (1>/ >)
-			// We'll extract stderr redirection target, stdout redirection target
-			String errorRedirectPath = null;
-//        String outputRedirectPath = null;
-			String commandLine = rawInput;
+			List<String> tokens = tokenize(rawInput);
+            if (tokens.isEmpty())
+                continue;
 
-			// 1) Parse stderr redirection "2> file"
-			int idxErr = commandLine.indexOf(" 2> ");
-			if (idxErr == -1) {
-				idxErr = commandLine.indexOf(" 2>");
-			}
-			if (idxErr != -1) {
-				String[] parts = commandLine.split(" 2> ", 2);
-				commandLine = parts[0].trim();
-				errorRedirectPath = parts[1].trim();
+            // Parse redirection
+            RedirectionResult redir = parseCommandWithRedirection(tokens);
 
-				// In case there's more after the file (like 1>), remove it:
-				// Only keep first token as path
-				int spaceAfter = errorRedirectPath.indexOf(' ');
-				if (spaceAfter != -1) {
-					errorRedirectPath = errorRedirectPath.substring(0, spaceAfter);
-				}
-			}
+            // Set redirections (stderr, stdout)
+            if (redir.stderrFile != null) {
+                Files.createDirectories(redir.stderrFile.getParentFile().toPath());
+                System.setErr(new PrintStream(Files.newOutputStream(redir.stderrFile.toPath())));
+            }
+            if (redir.stdoutFile != null) {
+                Files.createDirectories(redir.stdoutFile.getParentFile().toPath());
+                System.setOut(new PrintStream(Files.newOutputStream(redir.stdoutFile.toPath())));
+            }
 
-			List<String> tokens = tokenize(commandLine);
-			if (tokens.isEmpty())
-				continue;
+            List<String> commandArgs = redir.commandArgs;
+            if (commandArgs.isEmpty()) {
+                System.setOut(stdout);
+                System.setErr(stderr);
+                System.out.print("$ ");
+                System.out.flush();
+                continue;
+            }
 
-			if (tokens.isEmpty())
-				continue;
-
-			String argsCleaned = String.join(" ", tokens);
-//      String command = argsCleaned.split(" ")[0];
-			String command = tokens.get(0);
+            String command = commandArgs.get(0);
+            String argsCleaned = String.join(" ", commandArgs);
 
 			switch (command) {
 			case "exit" -> System.exit(0);
@@ -86,10 +80,12 @@ public class Main {
 			}
 			case "ls" -> lsCommand(argsCleaned);
 			case "help" -> helpCommand();
-			default -> commandExec(tokens);
+			default -> commandExec(redir);
 			}
  
 			// Always print prompt after command finishes
+			System.setOut(stdout);
+            System.setErr(stderr);
 			System.out.print("$ ");
 			System.out.flush();
 		}
@@ -146,68 +142,60 @@ public class Main {
 		System.out.printf("%s: not found\n", command);
 	}
 
-	private static void commandExec(List<String> tokens) {
-	    try {
-	        RedirectionResult result = parseCommandWithRedirection(tokens);
+	private static void commandExec(RedirectionResult result) {
+        try {
+            ProcessBuilder builder = new ProcessBuilder(result.commandArgs);
+            builder.directory(new File(System.getProperty("user.dir")));
 
-	        ProcessBuilder builder = new ProcessBuilder(result.commandArgs);
-	        builder.directory(new File(System.getProperty("user.dir")));
+            if (result.stdoutFile != null) {
+                builder.redirectOutput(result.stdoutFile);
+            } else {
+                builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+            }
 
-	        if (result.stdoutFile != null) {
-	            Files.createDirectories(result.stdoutFile.getParentFile().toPath());
-	            builder.redirectOutput(result.stdoutFile);
-	        } else {
-	            builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-	        }
+            if (result.stderrFile != null) {
+                builder.redirectError(result.stderrFile);
+            } else {
+                builder.redirectError(ProcessBuilder.Redirect.INHERIT);
+            }
 
-	        if (result.stderrFile != null) {
-	            Files.createDirectories(result.stderrFile.getParentFile().toPath());
-	            builder.redirectError(result.stderrFile);
-	        } else {
-	            builder.redirectError(ProcessBuilder.Redirect.INHERIT);
-	        }
+            Process process = builder.start();
+            process.waitFor();
+        } catch (Exception e) {
+            System.err.println("Error executing command: " + e.getMessage());
+        }
+    }
 
-	        Process process = builder.start();
-	        int exitCode = process.waitFor();
-	        System.out.print("$ ");
-	        System.out.flush();
-//	        process.waitFor();
-	    } catch (Exception e) {
-	        System.err.println("Error executing command: " + e.getMessage());
-	    }
-	}
-	
-	
-	private static RedirectionResult parseCommandWithRedirection(List<String> tokens) {
-	    List<String> cmd = new ArrayList<>();
-	    File stdoutFile = null;
-	    File stderrFile = null;
-	    boolean expectRedirectFile = false;
-	    String redirectType = null; // "stdout" or "stderr"
+    private static RedirectionResult parseCommandWithRedirection(List<String> tokens) {
+        List<String> cmd = new ArrayList<>();
+        File stdoutFile = null;
+        File stderrFile = null;
+        boolean expectRedirectFile = false;
+        String redirectType = null;
 
-	    for (int i = 0; i < tokens.size(); i++) {
-	        String token = tokens.get(i);
+        for (int i = 0; i < tokens.size(); i++) {
+            String token = tokens.get(i);
 
-	        if ("2>".equals(token)) {
-	            redirectType = "stderr";
-	            expectRedirectFile = true;
-	        } else if ("1>".equals(token) || ">".equals(token)) {
-	            redirectType = "stdout";
-	            expectRedirectFile = true;
-	        } else if (expectRedirectFile) {
-	            File f = new File(token);
-	            if ("stdout".equals(redirectType)) {
-	                stdoutFile = f;
-	            } else if ("stderr".equals(redirectType)) {
-	                stderrFile = f;
-	            }
-	            expectRedirectFile = false;
-	        } else {
-	            cmd.add(token);
-	        }
-	    }
-	    return new RedirectionResult(cmd, stdoutFile, stderrFile);
-	}
+            if ("2>".equals(token)) {
+                redirectType = "stderr";
+                expectRedirectFile = true;
+            } else if ("1>".equals(token) || ">".equals(token)) {
+                redirectType = "stdout";
+                expectRedirectFile = true;
+            } else if (expectRedirectFile) {
+                File f = new File(token);
+                if ("stdout".equals(redirectType)) {
+                    stdoutFile = f;
+                } else if ("stderr".equals(redirectType)) {
+                    stderrFile = f;
+                }
+                expectRedirectFile = false;
+            } else {
+                cmd.add(token);
+            }
+        }
+        return new RedirectionResult(cmd, stdoutFile, stderrFile);
+    }
 
 
 
