@@ -46,8 +46,9 @@ public class Main {
                 System.setErr(new PrintStream(Files.newOutputStream(redir.stderrFile.toPath())));
             }
             if (redir.stdoutFile != null) {
-                Files.createDirectories(redir.stdoutFile.getParentFile().toPath());
-                System.setOut(new PrintStream(Files.newOutputStream(redir.stdoutFile.toPath())));
+            	Files.createDirectories(redir.stdoutFile.getParentFile().toPath());
+                FileOutputStream fos = new FileOutputStream(redir.stdoutFile, redir.appendStdout);
+                System.setOut(new PrintStream(fos));
             }
 
             List<String> commandArgs = redir.commandArgs;
