@@ -22,18 +22,11 @@ public class Main {
 		
 		// Initialize LineReader for autocompletion
 		Terminal terminal = TerminalBuilder.builder().build();
-		LineReader lineReader = LineReaderBuilder.builder()
-		        .terminal(terminal)
-		        .build();
-
-		// List of built-in commands to autocomplete
 		List<String> commands = new ArrayList<>();
 		commands.add("echo");
 		commands.add("exit");
 
 
-		// In the loop
-		String rawInput = lineReader.readLine("$ ");
 
 		Scanner scanner = new Scanner(System.in);
 		final PrintStream stdout = System.out;
@@ -44,6 +37,12 @@ public class Main {
 			System.setOut(stdout);
 			System.setErr(stderr);
 //  		System.out.print("$ ");
+			LineReader lineReader = LineReaderBuilder.builder()
+	                .terminal(terminal)
+	                .completer(new StringsCompleter(commands))
+	                .build();
+
+	        String rawInput = lineReader.readLine("$ ");
 
 			if (!scanner.hasNextLine())
 				break;
