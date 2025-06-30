@@ -2,8 +2,9 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import org.jline.reader.*;
-import org.jline.terminal.*;
 import org.jline.utils.*;
+import org.jline.terminal.*;
+import org.jline.terminal.impl.*;
 
 public class Main {
 
@@ -18,6 +19,7 @@ public class Main {
             List<String> commands = new ArrayList<>();
             commands.add("echo");
             commands.add("exit");
+            
 
             // Create a custom completer for 'echo' and 'exit'
             Completer completer = (lineReader, parsedLine, candidates) -> {
@@ -30,7 +32,7 @@ public class Main {
             };
 
             // Terminal setup
-            Terminal terminal = TerminalBuilder.terminal();
+            Terminal terminal = TerminalBuilder.builder().system(true).build();
             LineReader lineReader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(completer)  // Use the completer variable directly
@@ -58,6 +60,12 @@ public class Main {
                     if (tokens.isEmpty()) {
                         continue;
                     }
+                    
+                    if (rawInput.equals("exit")) {
+                        break;  // Exit the loop if "exit" is typed
+                    }
+                    
+                    System.out.println("You typed: " + rawInput);
 
                     // Parse redirection (if any)
                     RedirectionResult redir = parseCommandWithRedirection(tokens);
