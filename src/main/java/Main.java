@@ -28,7 +28,7 @@ public class Main {
 
 
 
-		Scanner scanner = new Scanner(System.in);
+//		Scanner scanner = new Scanner(System.in);
 		final PrintStream stdout = System.out;
 		final PrintStream stderr = System.err;
 
@@ -44,8 +44,8 @@ public class Main {
 
 	        String rawInput = lineReader.readLine("$ ");
 
-			if (!scanner.hasNextLine())
-				break;
+//			if (!scanner.hasNextLine())
+//				break;
 
 //			String rawInput = scanner.nextLine();
 //			String rawInput = consoleReader.readLine();  // Read line with autocompletion
