@@ -150,11 +150,11 @@ public class Main {
             builder.directory(new File(System.getProperty("user.dir")));
 
             if (result.stdoutFile != null) {
-            	if (result.stdoutFile instanceof AppendableFile) {
-                    builder.redirectOutput(ProcessBuilder.Redirect.appendTo(((AppendableFile) result.stdoutFile).file));
-                } else {
-                    builder.redirectOutput(result.stdoutFile);
-                }
+            	if (result.appendStdout) {
+            		builder.redirectOutput(ProcessBuilder.Redirect.appendTo(result.stdoutFile));
+            	} else {
+            		builder.redirectOutput(result.stdoutFile);
+            	}
             } else {
                 builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
             }
@@ -207,10 +207,7 @@ public class Main {
             } else if (expectRedirectFile) {
                 File f = new File(token);
                 if ("stdout".equals(redirectType)) {
-                	if (appendMode) {
-                        // Mark append mode via custom subclass
-                        stdoutFile = new AppendableFile(f);
-                    }
+                        stdoutFile = f;
                 } else if ("stderr".equals(redirectType)) {
                     stderrFile = f;
                 }
@@ -413,14 +410,6 @@ public class Main {
 	}
 	
 	
-	// Wrapper to signal append mode for stdout redirection
-	static class AppendableFile extends File {
-	    public final File file;
-	    public AppendableFile(File file) {
-	        super(file.getPath());
-	        this.file = file;
-	    }
-	}
 	
 	static class RedirectionResult {
 	    List<String> commandArgs;
