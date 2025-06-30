@@ -47,7 +47,7 @@ public class Main {
         };
 		
      // Ensure the terminal is correctly set up
-        Terminal terminal = TerminalBuilder.terminal();  // Use this method to get a proper terminal instance
+        Terminal terminal = TerminalBuilder.builder().dumb(true).build();
         LineReader lineReader = LineReaderBuilder.builder()
         	    .terminal(terminal)
         	    .completer(completer)  // Use the completer variable directly
@@ -524,10 +524,14 @@ public class Main {
 	 // Create a completer for echo and exit commands
 	Completer completer = (lineReader, parsedLine, candidates) -> {
 	    String buffer = parsedLine.line().trim();  // Get the entire line (input buffer)
-	    if (buffer.startsWith("ech")) {
-	        candidates.add(new Candidate("echo"));
-	    } else if (buffer.startsWith("exi")) {
-	        candidates.add(new Candidate("exit"));
+	    
+	    if (buffer.length() > 0) {
+	        // Matching "ech" for echo and "exi" for exit
+	        if (buffer.startsWith("ech")) {
+	            candidates.add(new Candidate("echo"));
+	        } else if (buffer.startsWith("exi")) {
+	            candidates.add(new Candidate("exit"));
+	        }
 	    }
 	};
 
