@@ -522,16 +522,15 @@ public class Main {
 	}
 	
 	 // Create a completer for echo and exit commands
-    public static Completer createCompleter() {
-        return (lineReader, parsedLine, candidates) -> {
-            String buffer = parsedLine.line().trim();  // Get the entire line (input buffer)
-            if (buffer.startsWith("ech")) {
-                candidates.add(new Candidate("echo"));
-            } else if (buffer.startsWith("exi")) {
-                candidates.add(new Candidate("exit"));
-            }
-        };
-    }
+	Completer completer = (lineReader, parsedLine, candidates) -> {
+	    String buffer = parsedLine.line().trim();  // Get the entire line (input buffer)
+	    if (buffer.startsWith("ech")) {
+	        candidates.add(new Candidate("echo"));
+	    } else if (buffer.startsWith("exi")) {
+	        candidates.add(new Candidate("exit"));
+	    }
+	};
+
 
 
 
