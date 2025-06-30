@@ -49,9 +49,10 @@ public class Main {
      // Ensure the terminal is correctly set up
         Terminal terminal = TerminalBuilder.terminal();  // Use this method to get a proper terminal instance
         LineReader lineReader = LineReaderBuilder.builder()
-                .terminal(terminal)
-                .completer(createCompleter())  // Reference the completer method
-                .build();
+        	    .terminal(terminal)
+        	    .completer(completer)  // Use the completer variable directly
+        	    .build();
+
 		
 		
 
