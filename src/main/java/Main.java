@@ -149,7 +149,11 @@ public class Main {
             builder.directory(new File(System.getProperty("user.dir")));
 
             if (result.stdoutFile != null) {
-                builder.redirectOutput(result.stdoutFile);
+            	if (result.stdoutFile instanceof AppendableFile) {
+                    builder.redirectOutput(ProcessBuilder.Redirect.appendTo(((AppendableFile) result.stdoutFile).file));
+                } else {
+                    builder.redirectOutput(result.stdoutFile);
+                }
             } else {
                 builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
             }
@@ -182,6 +186,7 @@ public class Main {
         File stderrFile = null;
         boolean expectRedirectFile = false;
         String redirectType = null;
+        boolean appendMode = false;
 
         for (int i = 0; i < tokens.size(); i++) {
             String token = tokens.get(i);
@@ -189,17 +194,27 @@ public class Main {
             if ("2>".equals(token)) {
                 redirectType = "stderr";
                 expectRedirectFile = true;
+                appendMode = false;
             } else if ("1>".equals(token) || ">".equals(token)) {
                 redirectType = "stdout";
                 expectRedirectFile = true;
+                appendMode = false;
+            } else if ("1>>".equals(token) || ">>".equals(token)) {
+                redirectType = "stdout";
+                expectRedirectFile = true;
+                appendMode = true;
             } else if (expectRedirectFile) {
                 File f = new File(token);
                 if ("stdout".equals(redirectType)) {
-                    stdoutFile = f;
+                	if (appendMode) {
+                        // Mark append mode via custom subclass
+                        stdoutFile = new AppendableFile(f);
+                    }
                 } else if ("stderr".equals(redirectType)) {
                     stderrFile = f;
                 }
                 expectRedirectFile = false;
+                appendMode = false;
             } else {
                 cmd.add(token);
             }
@@ -230,36 +245,6 @@ public class Main {
     	}
     }
 
-
-//	static void changeDirectory(String path) {
-//		if (path.charAt(0) == '~') {
-//			String part1 = System.getenv("HOME");
-//
-//			if (part1 == null) {
-//				part1 = System.getenv("USERPROFILE");
-//			}
-//
-//			String part2 = path.substring(1).trim();
-//			Path path1 = getPath(part1);
-//			Path path2 = getPath(part2);
-//			Path resolvedPath = path1.resolve(path2);
-//
-//			if (Files.exists(resolvedPath) && Files.isDirectory(resolvedPath)) {
-//				System.setProperty("user.dir", resolvedPath.toString());
-//			} else {
-//				System.out.printf("cd: %s: No such file or directory\n", path);
-//			}
-//		} else {
-//			Path workingDir = getPath(System.getProperty("user.dir"));
-//			Path normalizedPath = getPath(path);
-//			Path resolvedPath = workingDir.resolve(normalizedPath).normalize();
-//			if (Files.exists(resolvedPath) && Files.isDirectory(resolvedPath)) {
-//				System.setProperty("user.dir", resolvedPath.toString());
-//			} else {
-//				System.out.printf("cd: %s: No such file or directory\n", path);
-//			}
-//		}
-//	}
 
 	static Path getPath(String path) {
 		return Paths.get(path);
@@ -425,5 +410,16 @@ public class Main {
 		System.out.println("  ls         List directory contents");
 		System.out.println("  help       Display this help message");
 	}
+	
+	
+	// Wrapper to signal append mode for stdout redirection
+	static class AppendableFile extends File {
+	    public final File file;
+	    public AppendableFile(File file) {
+	        super(file.getPath());
+	        this.file = file;
+	    }
+	}
+
 
 }
