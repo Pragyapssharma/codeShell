@@ -5,6 +5,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import jline.console.ConsoleReader;
+import jline.console.completer.Completer;
+import jline.console.completer.StringsCompleter;
 
 public class Main {
 	public static void main(String[] args) throws Exception {
@@ -13,12 +16,26 @@ public class Main {
 		System.out.flush();
 		System.out.print("$ ");
 		System.out.flush();
+		
+		// Initialize ConsoleReader for autocompletion
+        ConsoleReader consoleReader = new ConsoleReader();
+        
+        // List of built-in commands to autocomplete
+        List<String> commands = new ArrayList<>();
+        commands.add("echo");
+        commands.add("exit");
+        
+        // Set up the completer for the built-in commands (echo, exit)
+        consoleReader.addCompleter(new StringsCompleter(commands));
+
+        // Initialize the prompt
+        consoleReader.setPrompt("$ ");
 
 		Scanner scanner = new Scanner(System.in);
 		final PrintStream stdout = System.out;
 		final PrintStream stderr = System.err;
 
-		while (scanner.hasNextLine()) {
+		while (true) {
 			System.setOut(stdout);
 			System.setErr(stderr);
 //  		System.out.print("$ ");
@@ -26,7 +43,14 @@ public class Main {
 			if (!scanner.hasNextLine())
 				break;
 
-			String rawInput = scanner.nextLine();
+//			String rawInput = scanner.nextLine();
+			String rawInput = consoleReader.readLine();  // Read line with autocompletion
+			
+			if (rawInput == null) {
+                break;  // Exit on EOF (Ctrl-D)
+            }
+
+            rawInput = rawInput.trim();  // Remove leading/trailing spaces
 
 			if (rawInput.trim().isEmpty()) {
 //            System.out.print("$ ");
@@ -55,8 +79,8 @@ public class Main {
             if (commandArgs.isEmpty()) {
                 System.setOut(stdout);
                 System.setErr(stderr);
-                System.out.print("$ ");
-                System.out.flush();
+//                System.out.print("$ ");
+//                System.out.flush();
                 continue;
             }
 
@@ -100,10 +124,15 @@ public class Main {
 			// Always print prompt after command finishes
 			System.setOut(stdout);
             System.setErr(stderr);
-			System.out.print("$ ");
-			System.out.flush();
+//			System.out.print("$ ");
+//			System.out.flush();
 		}
 	}
+	
+	// Autocompletion for built-in commands
+    static void completeCommand(ConsoleReader consoleReader) throws IOException {
+        consoleReader.setCompleter(new StringsCompleter("echo", "exit"));
+    }
  
 	static void type(String input) {
 		String[] builtins = { "exit", "echo", "type", "pwd", "cd", "help", "ls", "help" };
@@ -275,6 +304,11 @@ public class Main {
 		boolean inSingleQuote = false;
 		boolean inDoubleQuote = false;
 		boolean escaping = false;
+		
+		String[] parts = input.split("\\s+");
+        for (String part : parts) {
+            tokens.add(part);
+        }
 
 		for (int i = 0; i < input.length(); i++) {
 			char c = input.charAt(i);
