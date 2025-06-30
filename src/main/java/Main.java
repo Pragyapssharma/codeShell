@@ -22,8 +22,8 @@ import java.util.*;
 
 
 public class Main {
-	public static void main(String[] args) throws Exception {
-		
+	public static void main(String[] args) {
+		try {
 		System.setProperty("org.jline.terminal.dumb", "true");
 		Logger.getLogger("org.jline").setLevel(Level.OFF);
 
@@ -46,16 +46,12 @@ public class Main {
             }
         };
 		
-		// Initialize LineReader for autocompletion
-		Terminal terminal = TerminalBuilder.builder()
-		        .system(false)
-		        .jansi(false)
-		        .build();
-		
-		LineReader lineReader = LineReaderBuilder.builder()
-				.terminal(terminal)
-	            .completer(completer)
-	            .build();
+     // Ensure the terminal is correctly set up
+        Terminal terminal = TerminalBuilder.terminal();  // Use this method to get a proper terminal instance
+        LineReader lineReader = LineReaderBuilder.builder()
+                .terminal(terminal)
+                .completer(createCompleter())  // Reference the completer method
+                .build();
 		
 		
 
@@ -169,6 +165,10 @@ public class Main {
 	        break;
 	    }
 		}
+		} catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
 	}
 	
  
@@ -519,6 +519,18 @@ public class Main {
 	        this.appendStderr = appendStderr;
 	    }
 	}
+	
+	 // Create a completer for echo and exit commands
+    public static Completer createCompleter() {
+        return (lineReader, parsedLine, candidates) -> {
+            String buffer = parsedLine.line().trim();  // Get the entire line (input buffer)
+            if (buffer.startsWith("ech")) {
+                candidates.add(new Candidate("echo"));
+            } else if (buffer.startsWith("exi")) {
+                candidates.add(new Candidate("exit"));
+            }
+        };
+    }
 
 
 
