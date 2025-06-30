@@ -5,9 +5,12 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import jline.console.ConsoleReader;
-import jline.console.completer.Completer;
-import jline.console.completer.StringsCompleter;
+import org.jline.reader.Completer;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 
 public class Main {
 	public static void main(String[] args) throws Exception {
@@ -17,25 +20,27 @@ public class Main {
 		System.out.print("$ ");
 		System.out.flush();
 		
-		// Initialize ConsoleReader for autocompletion
-        ConsoleReader consoleReader = new ConsoleReader();
-        
-        // List of built-in commands to autocomplete
-        List<String> commands = new ArrayList<>();
-        commands.add("echo");
-        commands.add("exit");
-        
-        // Set up the completer for the built-in commands (echo, exit)
-        consoleReader.addCompleter(new StringsCompleter(commands));
+		// Initialize LineReader for autocompletion
+		Terminal terminal = TerminalBuilder.builder().build();
+		LineReader lineReader = LineReaderBuilder.builder()
+		        .terminal(terminal)
+		        .build();
 
-        // Initialize the prompt
-        consoleReader.setPrompt("$ ");
+		// List of built-in commands to autocomplete
+		List<String> commands = new ArrayList<>();
+		commands.add("echo");
+		commands.add("exit");
+
+
+		// In the loop
+		String rawInput = lineReader.readLine("$ ");
 
 		Scanner scanner = new Scanner(System.in);
 		final PrintStream stdout = System.out;
 		final PrintStream stderr = System.err;
 
 		while (true) {
+			try {
 			System.setOut(stdout);
 			System.setErr(stderr);
 //  		System.out.print("$ ");
@@ -44,7 +49,7 @@ public class Main {
 				break;
 
 //			String rawInput = scanner.nextLine();
-			String rawInput = consoleReader.readLine();  // Read line with autocompletion
+//			String rawInput = consoleReader.readLine();  // Read line with autocompletion
 			
 			if (rawInput == null) {
                 break;  // Exit on EOF (Ctrl-D)
@@ -126,13 +131,17 @@ public class Main {
             System.setErr(stderr);
 //			System.out.print("$ ");
 //			System.out.flush();
+		
+		} catch (org.jline.reader.UserInterruptException e) {
+	        // Handle Ctrl-C
+	        System.out.println("^C");
+	    } catch (org.jline.reader.EndOfFileException e) {
+	        // Handle Ctrl-D
+	        break;
+	    }
 		}
 	}
 	
-	// Autocompletion for built-in commands
-    static void completeCommand(ConsoleReader consoleReader) throws IOException {
-        consoleReader.setCompleter(new StringsCompleter("echo", "exit"));
-    }
  
 	static void type(String input) {
 		String[] builtins = { "exit", "echo", "type", "pwd", "cd", "help", "ls", "help" };
