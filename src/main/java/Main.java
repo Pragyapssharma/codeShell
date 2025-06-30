@@ -31,6 +31,21 @@ public class Main {
 		commands.add("echo");
 		commands.add("exit");
 		
+		// Create a custom completer that completes echo and exit
+        Completer completer = new Completer() {
+            @Override
+            public void complete(LineReader lineReader, ParsedLine parsedLine, List<Candidate> candidates) {
+                String buffer = parsedLine.getBuffer().toString().trim();
+                
+                // Match prefix for echo and exit
+                if (buffer.startsWith("ech")) {
+                    candidates.add(new Candidate("echo"));
+                } else if (buffer.startsWith("exi")) {
+                    candidates.add(new Candidate("exit"));
+                }
+            }
+        };
+		
 		// Initialize LineReader for autocompletion
 		Terminal terminal = TerminalBuilder.builder()
 		        .system(false)
@@ -38,9 +53,9 @@ public class Main {
 		        .build();
 		
 		LineReader lineReader = LineReaderBuilder.builder()
-                .terminal(TerminalBuilder.builder().jansi(false).build())
-                .completer(new StringsCompleter(commands))
-                .build();
+				.terminal(terminal)
+	            .completer(completer)
+	            .build();
 		
 		
 
