@@ -219,7 +219,7 @@ public class Main {
                 cmd.add(token);
             }
         }
-        return new RedirectionResult(cmd, stdoutFile, stderrFile);
+        return new RedirectionResult(cmd, stdoutFile, stderrFile, appendMode);
     }
 
     static void changeDirectory(String path) {
