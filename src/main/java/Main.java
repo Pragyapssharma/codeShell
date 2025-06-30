@@ -38,7 +38,7 @@ public class Main {
 			System.setErr(stderr);
 //  		System.out.print("$ ");
 			LineReader lineReader = LineReaderBuilder.builder()
-	                .terminal(terminal)
+	                .terminal(TerminalBuilder.builder().jansi(false).build())
 	                .completer(new StringsCompleter(commands))
 	                .build();
 
