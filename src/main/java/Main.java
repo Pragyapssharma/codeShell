@@ -43,7 +43,7 @@ public class Main {
             // Set redirections (stderr, stdout)
             if (redir.stderrFile != null) {
                 Files.createDirectories(redir.stderrFile.getParentFile().toPath());
-                System.setErr(new PrintStream(Files.newOutputStream(redir.stderrFile.toPath())));
+                System.setErr(new PrintStream(new FileOutputStream(redir.stderrFile, redir.appendStderr)));
             }
             if (redir.stdoutFile != null) {
             	Files.createDirectories(redir.stdoutFile.getParentFile().toPath());
@@ -172,7 +172,11 @@ public class Main {
             }
 
             if (result.stderrFile != null) {
-                builder.redirectError(result.stderrFile);
+            	if (result.appendStderr) {
+                    builder.redirectError(ProcessBuilder.Redirect.appendTo(result.stderrFile));
+                } else {
+                    builder.redirectError(result.stderrFile);
+                }
             } else {
                 builder.redirectError(ProcessBuilder.Redirect.INHERIT);
             }
@@ -200,6 +204,7 @@ public class Main {
         boolean expectRedirectFile = false;
         String redirectType = null;
         boolean appendMode = false;
+        boolean appendStderr = false;
 
         for (int i = 0; i < tokens.size(); i++) {
             String token = tokens.get(i);
@@ -208,6 +213,10 @@ public class Main {
                 redirectType = "stderr";
                 expectRedirectFile = true;
                 appendMode = false;
+            } else if ("2>>".equals(token)) {
+            	redirectType = "stderr";
+                expectRedirectFile = true;
+                appendStderr = true;
             } else if ("1>".equals(token) || ">".equals(token)) {
                 redirectType = "stdout";
                 expectRedirectFile = true;
@@ -229,7 +238,7 @@ public class Main {
                 cmd.add(token);
             }
         }
-        return new RedirectionResult(cmd, stdoutFile, stderrFile, appendMode);
+        return new RedirectionResult(cmd, stdoutFile, stderrFile, appendMode, appendStderr);
     }
 
     static void changeDirectory(String path) {
@@ -428,12 +437,14 @@ public class Main {
 	    File stdoutFile;
 	    File stderrFile;
 	    boolean appendStdout;
+	    boolean appendStderr;
 
-	    RedirectionResult(List<String> commandArgs, File stdoutFile, File stderrFile, boolean appendStdout) {
+	    RedirectionResult(List<String> commandArgs, File stdoutFile, File stderrFile, boolean appendStdout, boolean appendStderr) {
 	        this.commandArgs = commandArgs;
 	        this.stdoutFile = stdoutFile;
 	        this.stderrFile = stderrFile;
 	        this.appendStdout = appendStdout;
+	        this.appendStderr = appendStderr;
 	    }
 	}
 
