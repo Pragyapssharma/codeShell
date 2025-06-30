@@ -65,10 +65,11 @@ public class Main {
 
 			switch (command) {
 			case "exit" -> System.exit(0);
-			case "echo" -> {
-				String[] echoParts = argsCleaned.split(" ", 2);
-				System.out.println(echoParts.length > 1 ? echoParts[1] : "");
-			}
+//			case "echo" -> {
+//				String[] echoParts = argsCleaned.split(" ", 2);
+//				System.out.println(echoParts.length > 1 ? echoParts[1] : "");
+//			}
+			case "echo" -> commandExec(redir);
 			case "type" -> type(argsCleaned);
 			case "pwd" -> System.out.println(Paths.get(System.getProperty("user.dir")).toAbsolutePath());
 			case "cd" -> {
