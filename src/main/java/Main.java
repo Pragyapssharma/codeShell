@@ -523,21 +523,13 @@ public class Main {
 	
 	 // Create a completer for echo and exit commands
 	Completer completer = (lineReader, parsedLine, candidates) -> {
-	    String buffer = parsedLine.line().trim();  // Get the entire line (input buffer)
-	    
-	    if (buffer.length() > 0) {
-	        // Matching "ech" for echo and "exi" for exit
-	        if (buffer.startsWith("ech")) {
-	            candidates.add(new Candidate("echo"));
-	        } else if (buffer.startsWith("exi")) {
-	            candidates.add(new Candidate("exit"));
-	        }
-	    }
-	    lineReader.callWidget(LineReader.CLEAR_SCREEN);
-	    System.out.print("$ ");
-	    System.out.flush();
-	};
-
+        String buffer = parsedLine.line().trim();
+        if (buffer.startsWith("ech")) {
+            candidates.add(new Candidate("echo"));
+        } else if (buffer.startsWith("exi")) {
+            candidates.add(new Candidate("exit"));
+        }
+    };
 
 
 
