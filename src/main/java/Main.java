@@ -27,16 +27,22 @@ public class Main {
 		System.out.print("$ ");
 		System.out.flush();
 		
+		List<String> commands = new ArrayList<>();
+		commands.add("echo");
+		commands.add("exit");
+		
 		// Initialize LineReader for autocompletion
 		Terminal terminal = TerminalBuilder.builder()
 		        .system(false)
 		        .jansi(false)
 		        .build();
 		
+		LineReader lineReader = LineReaderBuilder.builder()
+                .terminal(TerminalBuilder.builder().jansi(false).build())
+                .completer(new StringsCompleter(commands))
+                .build();
 		
-		List<String> commands = new ArrayList<>();
-		commands.add("echo");
-		commands.add("exit");
+		
 
 
 
@@ -49,10 +55,7 @@ public class Main {
 			System.setOut(stdout);
 			System.setErr(stderr);
 //  		System.out.print("$ ");
-			LineReader lineReader = LineReaderBuilder.builder()
-	                .terminal(TerminalBuilder.builder().jansi(false).build())
-	                .completer(new StringsCompleter(commands))
-	                .build();
+			
 
 	        String rawInput = lineReader.readLine("$ ");
 
