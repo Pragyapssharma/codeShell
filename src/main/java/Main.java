@@ -69,17 +69,28 @@ public class Main {
 //				String[] echoParts = argsCleaned.split(" ", 2);
 //				System.out.println(echoParts.length > 1 ? echoParts[1] : "");
 //			}
-			case "echo" -> commandExec(redir);
+			 case "echo" -> {
+                 if (commandArgs.size() > 1)
+                     System.out.println(String.join(" ", commandArgs.subList(1, commandArgs.size())));
+                 else
+                     System.out.println();
+             }
 			case "type" -> type(argsCleaned);
 			case "pwd" -> System.out.println(Paths.get(System.getProperty("user.dir")).toAbsolutePath());
+//			case "cd" -> {
+//				String[] cdParts = argsCleaned.split(" ", 2);
+//				if (cdParts.length > 1) {
+//					changeDirectory(cdParts[1]);
+//				} else {
+//					System.err.println("cd: missing operand");
+//				}
+//			}
 			case "cd" -> {
-				String[] cdParts = argsCleaned.split(" ", 2);
-				if (cdParts.length > 1) {
-					changeDirectory(cdParts[1]);
-				} else {
-					System.err.println("cd: missing operand");
-				}
-			}
+                if (commandArgs.size() > 1)
+                    changeDirectory(commandArgs.get(1));
+                else
+                    System.err.println("cd: missing operand");
+            }
 //			case "ls" -> lsCommand(argsCleaned);
 			case "ls" -> commandExec(redir);
 			case "help" -> helpCommand();
@@ -213,7 +224,7 @@ public class Main {
                     stderrFile = f;
                 }
                 expectRedirectFile = false;
-                appendMode = false;
+//                appendMode = false;
             } else {
                 cmd.add(token);
             }
