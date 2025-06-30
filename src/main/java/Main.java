@@ -523,13 +523,13 @@ public class Main {
 	
 	 // Create a completer for echo and exit commands
 	Completer completer = (lineReader, parsedLine, candidates) -> {
-        String buffer = parsedLine.line().trim();
-        if (buffer.startsWith("ech")) {
-            candidates.add(new Candidate("echo"));
-        } else if (buffer.startsWith("exi")) {
-            candidates.add(new Candidate("exit"));
-        }
-    };
+	    String word = parsedLine.word();
+	    if ("ech".startsWith(word)) {
+	        candidates.add(new Candidate("echo"));
+	    } else if ("exi".startsWith(word)) {
+	        candidates.add(new Candidate("exit"));
+	    }
+	};
 
 
 
