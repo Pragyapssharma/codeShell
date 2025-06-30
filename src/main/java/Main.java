@@ -13,7 +13,12 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jline.reader.*;
+import org.jline.terminal.*;
+import org.jline.reader.impl.completer.*;
+import org.jline.utils.*;
 
+import java.util.*;
 
 
 public class Main {
@@ -31,18 +36,13 @@ public class Main {
 		commands.add("echo");
 		commands.add("exit");
 		
-		// Create a custom completer that completes echo and exit
-        Completer completer = new Completer() {
-            @Override
-            public void complete(LineReader lineReader, ParsedLine parsedLine, List<Candidate> candidates) {
-                String buffer = parsedLine.getBuffer().toString().trim();
-                
-                // Match prefix for echo and exit
-                if (buffer.startsWith("ech")) {
-                    candidates.add(new Candidate("echo"));
-                } else if (buffer.startsWith("exi")) {
-                    candidates.add(new Candidate("exit"));
-                }
+		 // Create a custom completer for 'echo' and 'exit'
+        Completer completer = (lineReader, parsedLine, candidates) -> {
+            String buffer = parsedLine.line().trim();  // Get the entire line
+            if (buffer.startsWith("ech")) {
+                candidates.add(new Candidate("echo"));
+            } else if (buffer.startsWith("exi")) {
+                candidates.add(new Candidate("exit"));
             }
         };
 		
