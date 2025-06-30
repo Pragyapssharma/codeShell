@@ -11,9 +11,16 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+
 
 public class Main {
 	public static void main(String[] args) throws Exception {
+		
+		System.setProperty("org.jline.terminal.dumb", "true");
+		Logger.getLogger("org.jline").setLevel(Level.OFF);
 
 		System.err.flush();
 		System.out.flush();
@@ -21,7 +28,12 @@ public class Main {
 		System.out.flush();
 		
 		// Initialize LineReader for autocompletion
-		Terminal terminal = TerminalBuilder.builder().build();
+		Terminal terminal = TerminalBuilder.builder()
+		        .system(false)
+		        .jansi(false)
+		        .build();
+		
+		
 		List<String> commands = new ArrayList<>();
 		commands.add("echo");
 		commands.add("exit");
