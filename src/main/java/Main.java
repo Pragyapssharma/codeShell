@@ -110,8 +110,8 @@ public class Main {
             if (commandArgs.isEmpty()) {
                 System.setOut(stdout);
                 System.setErr(stderr);
-//                System.out.print("$ ");
-//                System.out.flush();
+                System.out.print("$ ");
+                System.out.flush();
                 continue;
             }
 
@@ -155,8 +155,8 @@ public class Main {
 			// Always print prompt after command finishes
 			System.setOut(stdout);
             System.setErr(stderr);
-//			System.out.print("$ ");
-//			System.out.flush();
+			System.out.print("$ ");
+			System.out.flush();
 		
 		} catch (org.jline.reader.UserInterruptException e) {
 	        // Handle Ctrl-C
@@ -533,6 +533,9 @@ public class Main {
 	            candidates.add(new Candidate("exit"));
 	        }
 	    }
+	    lineReader.callWidget(LineReader.CLEAR_SCREEN);
+	    System.out.print("$ ");
+	    System.out.flush();
 	};
 
 
