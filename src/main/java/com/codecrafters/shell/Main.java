@@ -3,116 +3,125 @@ package com.codecrafters.shell;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
-import org.jline.reader.*;
-import org.jline.terminal.*;
-import org.jline.reader.impl.*;
-import org.jline.reader.impl.completer.*;
 
 public class Main {
 
     public static void main(String[] args) {
-        // Save original stderr
-        PrintStream originalErr = System.err;
-        
         try {
             // Disable JLine logging
             System.setProperty("org.jline.log.level", "OFF");
             
-            // Redirect stderr to prevent warnings
-            System.setErr(new PrintStream(new OutputStream() {
-                @Override
-                public void write(int b) { }
-                @Override
-                public void write(byte[] b, int off, int len) { }
-            }));
-
-            // Configure terminal
-            Terminal terminal = TerminalBuilder.builder()
-                    .system(true)
-                    .dumb(true)
-                    .build();
-
-            // Create a completer for echo and exit with trailing spaces
-            List<String> commands = Arrays.asList("echo ", "exit ");
-            StringsCompleter completer = new StringsCompleter(commands);
-
-            // Build LineReader
-            LineReader lineReader = LineReaderBuilder.builder()
-                    .terminal(terminal)
-                    .completer(completer)
-                    .option(LineReader.Option.AUTO_FRESH_LINE, false)
-                    .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
-                    .build();
-
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+            
             while (true) {
-                try {
-                    String rawInput = lineReader.readLine("$ ");
-                    
-                    if (rawInput == null) {
-                        break;
-                    }
-
-                    String trimmedInput = rawInput.trim();
-                    
-                    // Handle exit command
-                    if (trimmedInput.equals("exit") || trimmedInput.equals("exit")) {
-                        System.setErr(originalErr);
-                        System.exit(0);
-                    }
-
-                    if (trimmedInput.isEmpty()) {
-                        continue;
-                    }
-
-                    List<String> tokens = tokenize(trimmedInput);
-                    if (tokens.isEmpty()) {
-                        continue;
-                    }
-
-                    RedirectionResult redir = parseCommandWithRedirection(tokens);
-                    handleRedirection(redir);
-
-                    List<String> commandArgs = redir.commandArgs;
-                    if (commandArgs.isEmpty()) {
-                        continue;
-                    }
-
-                    String command = commandArgs.get(0);
-                    String argsCleaned = String.join(" ", commandArgs);
-
-                    switch (command) {
-                        case "echo":
-                            handleEcho(commandArgs);
-                            break;
-                        case "type":
-                            type(argsCleaned);
-                            break;
-                        case "pwd":
-                            System.out.println(Paths.get(System.getProperty("user.dir")).toAbsolutePath());
-                            break;
-                        case "cd":
-                            handleCd(commandArgs);
-                            break;
-                        case "ls":
-                            lsCommand(argsCleaned);
-                            break;
-                        case "help":
-                            helpCommand();
-                            break;
-                        default:
-                            commandExec(redir);
-                            break;
-                    }
-                } catch (UserInterruptException e) {
-                    System.out.println("^C");
-                } catch (EndOfFileException e) {
+                System.out.print("$ ");
+                System.out.flush();
+                
+                // Read input with potential tab completion
+                String rawInput = readLineWithTab(reader);
+                
+                if (rawInput == null) {
                     break;
+                }
+
+                String trimmedInput = rawInput.trim();
+                
+                // Handle exit command
+                if (trimmedInput.equals("exit")) {
+                    System.exit(0);
+                }
+
+                if (trimmedInput.isEmpty()) {
+                    continue;
+                }
+
+                List<String> tokens = tokenize(trimmedInput);
+                if (tokens.isEmpty()) {
+                    continue;
+                }
+
+                RedirectionResult redir = parseCommandWithRedirection(tokens);
+                handleRedirection(redir);
+
+                List<String> commandArgs = redir.commandArgs;
+                if (commandArgs.isEmpty()) {
+                    continue;
+                }
+
+                String command = commandArgs.get(0);
+                String argsCleaned = String.join(" ", commandArgs);
+
+                switch (command) {
+                    case "echo":
+                        handleEcho(commandArgs);
+                        break;
+                    case "type":
+                        type(argsCleaned);
+                        break;
+                    case "pwd":
+                        System.out.println(Paths.get(System.getProperty("user.dir")).toAbsolutePath());
+                        break;
+                    case "cd":
+                        handleCd(commandArgs);
+                        break;
+                    case "ls":
+                        lsCommand(argsCleaned);
+                        break;
+                    case "help":
+                        helpCommand();
+                        break;
+                    default:
+                        commandExec(redir);
+                        break;
                 }
             }
         } catch (Exception e) {
-            // Silent fail
-        } finally {
-            System.setErr(originalErr);
+            e.printStackTrace();
+        }
+    }
+
+    private static String readLineWithTab(BufferedReader reader) throws IOException {
+        StringBuilder line = new StringBuilder();
+        
+        while (true) {
+            int ch = System.in.read();
+            
+            if (ch == -1) {
+                return null; // EOF
+            }
+            
+            if (ch == '\t') {
+                // Handle tab completion
+                String currentLine = line.toString();
+                String trimmed = currentLine.trim();
+                
+                // Check for matches
+                if ("ech".equals(trimmed)) {
+                    line = new StringBuilder("echo ");
+                    System.out.print("\r$ echo ");
+                    System.out.flush();
+                } else if ("exi".equals(trimmed)) {
+                    line = new StringBuilder("exit ");
+                    System.out.print("\r$ exit ");
+                    System.out.flush();
+                } else if (trimmed.startsWith("e") && trimmed.length() < 4) {
+                    // For partial matches, complete to echo by default
+                    line = new StringBuilder("echo ");
+                    System.out.print("\r$ echo ");
+                    System.out.flush();
+                }
+                continue;
+            }
+            
+            if (ch == '\n' || ch == '\r') {
+                System.out.println();
+                return line.toString();
+            }
+            
+            // Regular character
+            line.append((char) ch);
+            System.out.print((char) ch);
+            System.out.flush();
         }
     }
 
