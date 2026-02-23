@@ -46,11 +46,12 @@ public class Main {
                     
                     // Only complete if we have a partial command at the beginning
                     if (line.wordIndex() == 0) { // Only complete the first word
-                        if ("echo".startsWith(word) && !word.equals("echo")) {
-                            candidates.add(new Candidate("echo ", word, true));
+                        if ("echo".startsWith(word) && !word.equals("echo") && !word.isEmpty()) {
+                            // Use the full constructor with complete flag
+                            candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
                         }
-                        if ("exit".startsWith(word) && !word.equals("exit")) {
-                            candidates.add(new Candidate("exit ", word, true));
+                        if ("exit".startsWith(word) && !word.equals("exit") && !word.isEmpty()) {
+                            candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
                         }
                     }
                 }
