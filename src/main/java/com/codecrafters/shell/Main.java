@@ -6,10 +6,14 @@ import java.util.*;
 import org.jline.reader.*;
 import org.jline.terminal.*;
 import org.jline.reader.impl.*;
+import org.jline.reader.impl.completer.*;
 
 public class Main {
 
     public static void main(String[] args) {
+        // Save original stderr
+        PrintStream originalErr = System.err;
+        
         try {
             // Disable JLine logging
             System.setProperty("org.jline.log.level", "OFF");
@@ -28,40 +32,14 @@ public class Main {
                     .dumb(true)
                     .build();
 
-            // Create a custom parser that handles tab completion
-            Parser parser = new Parser() {
-                @Override
-                public ParsedLine parse(String line, int cursor, ParseContext context) {
-                    return new SimpleParsedLine(line, cursor);
-                }
-            };
+            // Create a completer for echo and exit with trailing spaces
+            List<String> commands = Arrays.asList("echo ", "exit ");
+            StringsCompleter completer = new StringsCompleter(commands);
 
-            // Create a completer with specific matches
-            Completer completer = (reader, line, candidates) -> {
-                String buffer = line.line();
-                String trimmed = buffer.trim();
-                
-                // Check for exact matches first
-                if (trimmed.equals("ech")) {
-                    candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
-                } else if (trimmed.equals("exi")) {
-                    candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
-                } else if (trimmed.startsWith("e") && trimmed.length() < 4) {
-                    // For partial matches like "e", "ec", "ech", "ex", "exi"
-                    if ("echo".startsWith(trimmed) && !trimmed.equals("echo")) {
-                        candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
-                    }
-                    if ("exit".startsWith(trimmed) && !trimmed.equals("exit")) {
-                        candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
-                    }
-                }
-            };
-
-            // Build LineReader with minimal features
+            // Build LineReader
             LineReader lineReader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(completer)
-                    .parser(parser)
                     .option(LineReader.Option.AUTO_FRESH_LINE, false)
                     .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
                     .build();
@@ -74,19 +52,19 @@ public class Main {
                         break;
                     }
 
-                    // Don't trim yet - we need to see if completion added a space
-                    String processed = rawInput;
+                    String trimmedInput = rawInput.trim();
                     
                     // Handle exit command
-                    if (processed.trim().equals("exit") || processed.trim().equals("exit")) {
+                    if (trimmedInput.equals("exit") || trimmedInput.equals("exit")) {
+                        System.setErr(originalErr);
                         System.exit(0);
                     }
 
-                    if (processed.trim().isEmpty()) {
+                    if (trimmedInput.isEmpty()) {
                         continue;
                     }
 
-                    List<String> tokens = tokenize(processed.trim());
+                    List<String> tokens = tokenize(trimmedInput);
                     if (tokens.isEmpty()) {
                         continue;
                     }
@@ -133,47 +111,8 @@ public class Main {
             }
         } catch (Exception e) {
             // Silent fail
-        }
-    }
-
-    // Simple ParsedLine implementation
-    private static class SimpleParsedLine implements ParsedLine {
-        private final String line;
-        private final int cursor;
-
-        SimpleParsedLine(String line, int cursor) {
-            this.line = line;
-            this.cursor = cursor;
-        }
-
-        @Override
-        public String word() {
-            return line.trim();
-        }
-
-        @Override
-        public int wordCursor() {
-            return cursor;
-        }
-
-        @Override
-        public int wordIndex() {
-            return 0;
-        }
-
-        @Override
-        public List<String> words() {
-            return Arrays.asList(line.trim().split("\\s+"));
-        }
-
-        @Override
-        public String line() {
-            return line;
-        }
-
-        @Override
-        public int cursor() {
-            return cursor;
+        } finally {
+            System.setErr(originalErr);
         }
     }
 
