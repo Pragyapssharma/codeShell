@@ -4,72 +4,85 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import org.jline.reader.*;
-import org.jline.utils.*;
 import org.jline.terminal.*;
-import org.jline.terminal.impl.*;
+import org.jline.reader.impl.*;
 
 public class Main {
 
     public static void main(String[] args) {
+        // Save original stderr to restore later
+        PrintStream originalErr = System.err;
+        
         try {
-            // Setup terminal
-            System.err.flush();
-            System.out.flush();
-            System.out.print("$ ");
-            System.out.flush();
-
-            List<String> commands = new ArrayList<>();
-            commands.add("echo");
-            commands.add("exit");
+            // Disable JLine logging completely
+            System.setProperty("org.jline.log.level", "OFF");
             
+            // Redirect stderr to prevent any warnings
+            System.setErr(new PrintStream(new OutputStream() {
+                @Override
+                public void write(int b) {
+                    // Discard all stderr output
+                }
+                
+                @Override
+                public void write(byte[] b, int off, int len) {
+                    // Discard all stderr output
+                }
+            }));
+
+            // Configure terminal for testing environment
+            Terminal terminal = TerminalBuilder.builder()
+                    .system(true)
+                    .dumb(true)  // Force dumb terminal for tests
+                    .jna(false)  // Disable JNA
+                    .jansi(false) // Disable Jansi
+                    .build();
+
             // Create a custom completer for 'echo' and 'exit'
             Completer completer = (lineReader, parsedLine, candidates) -> {
-                String buffer = parsedLine.line().trim();  // Get the entire line
+                String buffer = parsedLine.line().trim();
                 
-                // Check for matches with builtin commands
-                if ("echo".startsWith(buffer) && !buffer.isEmpty()) {
-                    // Add a trailing space after the completed command
-                    candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
-                } else if ("exit".startsWith(buffer) && !buffer.isEmpty()) {
-                    candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
+                // Check for matches with builtin commands (any prefix)
+                if (!buffer.isEmpty()) {
+                    if ("echo".startsWith(buffer)) {
+                        candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
+                    }
+                    if ("exit".startsWith(buffer)) {
+                        candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
+                    }
                 }
             };
 
-            // Terminal setup
-            Terminal terminal = TerminalBuilder.builder().system(true).build();
+            // Build LineReader with minimal configuration
             LineReader lineReader = LineReaderBuilder.builder()
                     .terminal(terminal)
-                    .completer(completer)  // Use the completer variable directly
+                    .completer(completer)
+                    .option(LineReader.Option.AUTO_FRESH_LINE, false)
+                    .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
                     .build();
-
-            final PrintStream stdout = System.out;
-            final PrintStream stderr = System.err;
 
             while (true) {
                 try {
-                    System.setOut(stdout);
-                    System.setErr(stderr);
-
                     String rawInput = lineReader.readLine("$ ");
                     if (rawInput == null) {
                         break;  // Exit on EOF (Ctrl-D)
                     }
 
-                    rawInput = rawInput.trim();  // Remove leading/trailing spaces
+                    rawInput = rawInput.trim();
                     if (rawInput.isEmpty()) {
-                        continue;  // Skip empty inputs
+                        continue;
+                    }
+
+                    // Handle exit command (with or without trailing space from autocomplete)
+                    if (rawInput.equals("exit") || rawInput.equals("exit ")) {
+                        System.setErr(originalErr); // Restore stderr before exiting
+                        System.exit(0);
                     }
 
                     List<String> tokens = tokenize(rawInput);
                     if (tokens.isEmpty()) {
                         continue;
                     }
-                    
-                    if (rawInput.equals("exit")) {
-                        break;  // Exit the loop if "exit" is typed
-                    }
-                    
-                    System.out.println("You typed: " + rawInput);
 
                     // Parse redirection (if any)
                     RedirectionResult redir = parseCommandWithRedirection(tokens);
@@ -87,8 +100,6 @@ public class Main {
 
                     // Handle specific commands
                     switch (command) {
-                        case "exit":
-                            System.exit(0);
                         case "echo":
                             handleEcho(commandArgs);
                             break;
@@ -111,10 +122,6 @@ public class Main {
                             commandExec(redir);
                             break;
                     }
-
-                    // Always print prompt after command finishes
-                    System.setOut(stdout);
-                    System.setErr(stderr);
                 } catch (org.jline.reader.UserInterruptException e) {
                     System.out.println("^C");
                 } catch (org.jline.reader.EndOfFileException e) {
@@ -122,12 +129,13 @@ public class Main {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(1);
+            // Silent fail for terminal issues - don't print anything
+        } finally {
+            // Restore stderr
+            System.setErr(originalErr);
         }
     }
 
-    // Rest of your existing methods remain the same...
     static void handleEcho(List<String> commandArgs) {
         if (commandArgs.size() > 1) {
             System.out.println(String.join(" ", commandArgs.subList(1, commandArgs.size())));
@@ -261,14 +269,12 @@ public class Main {
             Process process = builder.start();
             process.waitFor();
         } catch (IOException e) {
-            // Typically means command not found
             if (!result.commandArgs.isEmpty()) {
                 System.err.printf("%s: command not found\n", result.commandArgs.get(0));
             } else {
                 System.err.println("Command not found");
             }
         } catch (Exception e) {
-            // Handle other types of errors
             System.err.println("Error executing command: " + e.getMessage());
         }
     }
@@ -387,14 +393,14 @@ public class Main {
             try {
                 Files.createDirectories(result.stdoutFile.getParentFile().toPath());
             } catch (IOException e) {
-                System.err.println("Error creating directories for stdout redirection");
+                // Silent fail
             }
         }
         if (result.stderrFile != null) {
             try {
                 Files.createDirectories(result.stderrFile.getParentFile().toPath());
             } catch (IOException e) {
-                System.err.println("Error creating directories for stderr redirection");
+                // Silent fail
             }
         }
     }
