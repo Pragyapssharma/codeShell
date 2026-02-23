@@ -39,11 +39,17 @@ public class Main {
                     .build();
 
             // Create a custom completer for 'echo' and 'exit'
-            Completer completer = (lineReader, parsedLine, candidates) -> {
-                String buffer = parsedLine.line().trim();
-                
-                // Check for matches with builtin commands (any prefix)
-                if (!buffer.isEmpty()) {
+            Completer completer = new Completer() {
+                @Override
+                public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
+                    String buffer = line.line().trim();
+                    
+                    // Only complete if we have a partial command
+                    if (buffer.isEmpty()) {
+                        return;
+                    }
+                    
+                    // Check for matches with builtin commands
                     if ("echo".startsWith(buffer)) {
                         candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
                     }
@@ -53,19 +59,21 @@ public class Main {
                 }
             };
 
-            // Build LineReader with minimal configuration
+            // Build LineReader with proper completion options
             LineReader lineReader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(completer)
                     .option(LineReader.Option.AUTO_FRESH_LINE, false)
                     .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
+                    .option(LineReader.Option.COMPLETE_IN_WORD, true) // Complete while typing
+                    .variable(LineReader.BLINK_MATCHING_PAREN, 0) // Disable blinking
                     .build();
 
             while (true) {
                 try {
                     String rawInput = lineReader.readLine("$ ");
                     if (rawInput == null) {
-                        break;  // Exit on EOF (Ctrl-D)
+                        break;
                     }
 
                     rawInput = rawInput.trim();
@@ -73,9 +81,9 @@ public class Main {
                         continue;
                     }
 
-                    // Handle exit command (with or without trailing space from autocomplete)
-                    if (rawInput.equals("exit") || rawInput.equals("exit ")) {
-                        System.setErr(originalErr); // Restore stderr before exiting
+                    // Handle exit command
+                    if (rawInput.equals("exit") || rawInput.startsWith("exit ")) {
+                        System.setErr(originalErr);
                         System.exit(0);
                     }
 
@@ -86,8 +94,6 @@ public class Main {
 
                     // Parse redirection (if any)
                     RedirectionResult redir = parseCommandWithRedirection(tokens);
-
-                    // Set redirection (stderr, stdout) if needed
                     handleRedirection(redir);
 
                     List<String> commandArgs = redir.commandArgs;
@@ -129,9 +135,8 @@ public class Main {
                 }
             }
         } catch (Exception e) {
-            // Silent fail for terminal issues - don't print anything
+            // Silent fail
         } finally {
-            // Restore stderr
             System.setErr(originalErr);
         }
     }
@@ -292,7 +297,7 @@ public class Main {
             if ("2>".equals(token)) {
                 redirectType = "stderr";
                 expectRedirectFile = true;
-                appendStdout = false;
+                appendStderr = false;
             } else if ("2>>".equals(token)) {
                 redirectType = "stderr";
                 expectRedirectFile = true;
@@ -317,7 +322,7 @@ public class Main {
                 cmd.add(token);
             }
         }
-        return new RedirectionResult(cmd, stdoutFile, stderrFile, appendStdout, appendStderr);
+        return new RedirectionResult(cmd, stdoutFile, stderrFile, appendStdout);
     }
 
     static Path getPath(String path) {
@@ -402,23 +407,6 @@ public class Main {
             } catch (IOException e) {
                 // Silent fail
             }
-        }
-    }
-
-    // Class to store information about redirection results
-    static class RedirectionResult {
-        List<String> commandArgs;
-        File stdoutFile;
-        File stderrFile;
-        boolean appendStdout;
-        boolean appendStderr;
-
-        RedirectionResult(List<String> commandArgs, File stdoutFile, File stderrFile, boolean appendStdout, boolean appendStderr) {
-            this.commandArgs = commandArgs;
-            this.stdoutFile = stdoutFile;
-            this.stderrFile = stderrFile;
-            this.appendStdout = appendStdout;
-            this.appendStderr = appendStderr;
         }
     }
 }
