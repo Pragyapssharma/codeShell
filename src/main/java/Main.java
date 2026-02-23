@@ -20,14 +20,16 @@ public class Main {
             commands.add("echo");
             commands.add("exit");
             
-
             // Create a custom completer for 'echo' and 'exit'
             Completer completer = (lineReader, parsedLine, candidates) -> {
                 String buffer = parsedLine.line().trim();  // Get the entire line
-                if (buffer.startsWith("ech")) {
-                    candidates.add(new Candidate("echo"));
-                } else if (buffer.startsWith("exi")) {
-                    candidates.add(new Candidate("exit"));
+                
+                // Check for matches with builtin commands
+                if ("echo".startsWith(buffer) && !buffer.isEmpty()) {
+                    // Add a trailing space after the completed command
+                    candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
+                } else if ("exit".startsWith(buffer) && !buffer.isEmpty()) {
+                    candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
                 }
             };
 
@@ -123,6 +125,7 @@ public class Main {
         }
     }
 
+    // Rest of your existing methods remain the same...
     static void handleEcho(List<String> commandArgs) {
         if (commandArgs.size() > 1) {
             System.out.println(String.join(" ", commandArgs.subList(1, commandArgs.size())));
@@ -234,17 +237,17 @@ public class Main {
             builder.directory(new File(System.getProperty("user.dir")));
 
             if (result.stdoutFile != null) {
-            	if (result.appendStdout) {
-            		builder.redirectOutput(ProcessBuilder.Redirect.appendTo(result.stdoutFile));
-            	} else {
-            		builder.redirectOutput(result.stdoutFile);
-            	}
+                if (result.appendStdout) {
+                    builder.redirectOutput(ProcessBuilder.Redirect.appendTo(result.stdoutFile));
+                } else {
+                    builder.redirectOutput(result.stdoutFile);
+                }
             } else {
                 builder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
             }
 
             if (result.stderrFile != null) {
-            	if (result.appendStderr) {
+                if (result.appendStderr) {
                     builder.redirectError(ProcessBuilder.Redirect.appendTo(result.stderrFile));
                 } else {
                     builder.redirectError(result.stderrFile);
@@ -266,7 +269,6 @@ public class Main {
             // Handle other types of errors
             System.err.println("Error executing command: " + e.getMessage());
         }
-
     }
 
     static RedirectionResult parseCommandWithRedirection(List<String> tokens) {
@@ -320,11 +322,6 @@ public class Main {
         boolean inSingleQuote = false;
         boolean inDoubleQuote = false;
         boolean escaping = false;
-
-        String[] parts = input.split("\\s+");
-        for (String part : parts) {
-            tokens.add(part);
-        }
 
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);
