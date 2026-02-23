@@ -10,9 +10,6 @@ import org.jline.reader.impl.*;
 public class Main {
 
     public static void main(String[] args) {
-        // Save original stderr to restore later
-        PrintStream originalErr = System.err;
-        
         try {
             // Disable JLine logging
             System.setProperty("org.jline.log.level", "OFF");
@@ -20,47 +17,51 @@ public class Main {
             // Redirect stderr to prevent warnings
             System.setErr(new PrintStream(new OutputStream() {
                 @Override
-                public void write(int b) {
-                    // Discard all stderr output
-                }
+                public void write(int b) { }
                 @Override
-                public void write(byte[] b, int off, int len) {
-                    // Discard all stderr output
-                }
+                public void write(byte[] b, int off, int len) { }
             }));
 
-            // Configure terminal for testing environment
+            // Configure terminal
             Terminal terminal = TerminalBuilder.builder()
                     .system(true)
                     .dumb(true)
                     .build();
 
-            // Create a custom completer that properly replaces the word
-            Completer completer = new Completer() {
+            // Create a custom parser that handles tab completion
+            Parser parser = new Parser() {
                 @Override
-                public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
-                    String buffer = line.line();
-                    
-                    // Find the word being completed (everything before cursor)
-                    String word = line.word();
-                    
-                    // Only complete if we have a partial command at the beginning
-                    if (line.wordIndex() == 0) { // Only complete the first word
-                        if ("echo".startsWith(word) && !word.equals("echo") && !word.isEmpty()) {
-                            // Use the full constructor with complete flag
-                            candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
-                        }
-                        if ("exit".startsWith(word) && !word.equals("exit") && !word.isEmpty()) {
-                            candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
-                        }
+                public ParsedLine parse(String line, int cursor, ParseContext context) {
+                    return new SimpleParsedLine(line, cursor);
+                }
+            };
+
+            // Create a completer with specific matches
+            Completer completer = (reader, line, candidates) -> {
+                String buffer = line.line();
+                String trimmed = buffer.trim();
+                
+                // Check for exact matches first
+                if (trimmed.equals("ech")) {
+                    candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
+                } else if (trimmed.equals("exi")) {
+                    candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
+                } else if (trimmed.startsWith("e") && trimmed.length() < 4) {
+                    // For partial matches like "e", "ec", "ech", "ex", "exi"
+                    if ("echo".startsWith(trimmed) && !trimmed.equals("echo")) {
+                        candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
+                    }
+                    if ("exit".startsWith(trimmed) && !trimmed.equals("exit")) {
+                        candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
                     }
                 }
             };
 
-            // Build LineReader with proper completion options
+            // Build LineReader with minimal features
             LineReader lineReader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(completer)
+                    .parser(parser)
                     .option(LineReader.Option.AUTO_FRESH_LINE, false)
                     .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
                     .build();
@@ -68,26 +69,28 @@ public class Main {
             while (true) {
                 try {
                     String rawInput = lineReader.readLine("$ ");
+                    
                     if (rawInput == null) {
                         break;
                     }
 
-                    // Handle exit command (with or without trailing space)
-                    String trimmedInput = rawInput.trim();
-                    if (trimmedInput.equals("exit") || trimmedInput.equals("exit")) {
+                    // Don't trim yet - we need to see if completion added a space
+                    String processed = rawInput;
+                    
+                    // Handle exit command
+                    if (processed.trim().equals("exit") || processed.trim().equals("exit")) {
                         System.exit(0);
                     }
 
-                    if (trimmedInput.isEmpty()) {
+                    if (processed.trim().isEmpty()) {
                         continue;
                     }
 
-                    List<String> tokens = tokenize(trimmedInput);
+                    List<String> tokens = tokenize(processed.trim());
                     if (tokens.isEmpty()) {
                         continue;
                     }
 
-                    // Parse redirection (if any)
                     RedirectionResult redir = parseCommandWithRedirection(tokens);
                     handleRedirection(redir);
 
@@ -99,7 +102,6 @@ public class Main {
                     String command = commandArgs.get(0);
                     String argsCleaned = String.join(" ", commandArgs);
 
-                    // Handle specific commands
                     switch (command) {
                         case "echo":
                             handleEcho(commandArgs);
@@ -123,19 +125,59 @@ public class Main {
                             commandExec(redir);
                             break;
                     }
-                } catch (org.jline.reader.UserInterruptException e) {
+                } catch (UserInterruptException e) {
                     System.out.println("^C");
-                } catch (org.jline.reader.EndOfFileException e) {
+                } catch (EndOfFileException e) {
                     break;
                 }
             }
         } catch (Exception e) {
             // Silent fail
-        } finally {
-            System.setErr(originalErr);
         }
     }
 
+    // Simple ParsedLine implementation
+    private static class SimpleParsedLine implements ParsedLine {
+        private final String line;
+        private final int cursor;
+
+        SimpleParsedLine(String line, int cursor) {
+            this.line = line;
+            this.cursor = cursor;
+        }
+
+        @Override
+        public String word() {
+            return line.trim();
+        }
+
+        @Override
+        public int wordCursor() {
+            return cursor;
+        }
+
+        @Override
+        public int wordIndex() {
+            return 0;
+        }
+
+        @Override
+        public List<String> words() {
+            return Arrays.asList(line.trim().split("\\s+"));
+        }
+
+        @Override
+        public String line() {
+            return line;
+        }
+
+        @Override
+        public int cursor() {
+            return cursor;
+        }
+    }
+
+    // All your existing methods remain exactly the same
     static void handleEcho(List<String> commandArgs) {
         if (commandArgs.size() > 1) {
             System.out.println(String.join(" ", commandArgs.subList(1, commandArgs.size())));
