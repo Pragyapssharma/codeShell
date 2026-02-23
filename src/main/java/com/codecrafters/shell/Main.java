@@ -6,36 +6,53 @@ import java.util.*;
 
 public class Main {
 
+    private static PrintWriter debugWriter;
+    private static final boolean DEBUG = true;
+
     public static void main(String[] args) {
         try {
-            // Disable JLine logging
-            System.setProperty("org.jline.log.level", "OFF");
-            
+            // Initialize debug file
+            try {
+                debugWriter = new PrintWriter(new FileWriter("/tmp/shell-debug.log", true));
+                debug("=== Shell started at " + new Date() + " ===");
+            } catch (Exception e) {
+                System.err.println("Failed to create debug file: " + e.getMessage());
+            }
+
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
             
             while (true) {
                 System.out.print("$ ");
                 System.out.flush();
+                debug("Prompt displayed");
                 
                 // Read input with potential tab completion
                 String rawInput = readLineWithTab(reader);
+                debug("Raw input after readLine: '" + rawInput + "'");
                 
                 if (rawInput == null) {
+                    debug("EOF received");
                     break;
                 }
 
                 String trimmedInput = rawInput.trim();
+                debug("Trimmed input: '" + trimmedInput + "'");
                 
                 // Handle exit command
                 if (trimmedInput.equals("exit")) {
+                    debug("Exit command received");
+                    if (debugWriter != null) debugWriter.close();
                     System.exit(0);
                 }
 
                 if (trimmedInput.isEmpty()) {
+                    debug("Empty input, continuing");
                     continue;
                 }
 
                 List<String> tokens = tokenize(trimmedInput);
+                debug("Tokens: " + tokens);
+
                 if (tokens.isEmpty()) {
                     continue;
                 }
@@ -50,6 +67,8 @@ public class Main {
 
                 String command = commandArgs.get(0);
                 String argsCleaned = String.join(" ", commandArgs);
+
+                debug("Executing command: '" + command + "'");
 
                 switch (command) {
                     case "echo":
@@ -76,50 +95,81 @@ public class Main {
                 }
             }
         } catch (Exception e) {
+            debug("Exception in main: " + e.getMessage());
             e.printStackTrace();
+        } finally {
+            if (debugWriter != null) debugWriter.close();
+        }
+    }
+
+    private static void debug(String message) {
+        if (DEBUG && debugWriter != null) {
+            debugWriter.println(new Date() + " - " + message);
+            debugWriter.flush();
         }
     }
 
     private static String readLineWithTab(BufferedReader reader) throws IOException {
         StringBuilder line = new StringBuilder();
+        List<Integer> charBuffer = new ArrayList<>();
+        
+        debug("readLineWithTab started");
         
         while (true) {
             int ch = System.in.read();
+            debug("Read character: " + ch + " ('" + (ch >= 32 ? (char)ch : "special") + "')");
             
             if (ch == -1) {
-                return null; // EOF
+                debug("EOF detected");
+                return null;
             }
             
             if (ch == '\t') {
+                debug("TAB key pressed");
+                debug("Current line before TAB: '" + line.toString() + "'");
+                
                 // Handle tab completion
                 String currentLine = line.toString();
                 String trimmed = currentLine.trim();
+                debug("Trimmed line for completion: '" + trimmed + "'");
                 
                 // Check for matches
                 if ("ech".equals(trimmed)) {
+                    debug("MATCH: 'ech' found, completing to 'echo '");
                     line = new StringBuilder("echo ");
+                    // Clear the current line and print the new one
                     System.out.print("\r$ echo ");
                     System.out.flush();
+                    debug("Line after completion: '" + line.toString() + "'");
                 } else if ("exi".equals(trimmed)) {
+                    debug("MATCH: 'exi' found, completing to 'exit '");
                     line = new StringBuilder("exit ");
                     System.out.print("\r$ exit ");
                     System.out.flush();
+                    debug("Line after completion: '" + line.toString() + "'");
                 } else if (trimmed.startsWith("e") && trimmed.length() < 4) {
-                    // For partial matches, complete to echo by default
+                    debug("PARTIAL MATCH: '" + trimmed + "' starts with e, completing to 'echo '");
                     line = new StringBuilder("echo ");
                     System.out.print("\r$ echo ");
                     System.out.flush();
+                    debug("Line after completion: '" + line.toString() + "'");
+                } else {
+                    debug("NO MATCH for: '" + trimmed + "'");
                 }
                 continue;
             }
             
             if (ch == '\n' || ch == '\r') {
+                debug("ENTER key pressed");
+                debug("Final line before return: '" + line.toString() + "'");
                 System.out.println();
                 return line.toString();
             }
             
             // Regular character
             line.append((char) ch);
+            charBuffer.add(ch);
+            debug("Added character: '" + (char)ch + "', current line: '" + line.toString() + "'");
             System.out.print((char) ch);
             System.out.flush();
         }
