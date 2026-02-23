@@ -9,34 +9,23 @@ import org.jline.reader.impl.*;
 
 public class Main {
 
-    private static PrintWriter debugWriter = null;
-
     public static void main(String[] args) {
         // Save original stderr to restore later
         PrintStream originalErr = System.err;
         
         try {
-            // Initialize debug file
-            try {
-                debugWriter = new PrintWriter(new FileWriter("/tmp/shell-debug.log", true));
-                debugWriter.println("=== Shell started at " + new Date() + " ===");
-                debugWriter.flush();
-            } catch (Exception e) {
-                // Ignore - debug file might not be writable
-            }
-
             // Disable JLine logging
             System.setProperty("org.jline.log.level", "OFF");
             
-            // Redirect stderr to prevent warnings but keep it for our use
+            // Redirect stderr to prevent warnings
             System.setErr(new PrintStream(new OutputStream() {
                 @Override
                 public void write(int b) {
-                    // Discard JLine warnings
+                    // Discard all stderr output
                 }
                 @Override
                 public void write(byte[] b, int off, int len) {
-                    // Discard JLine warnings
+                    // Discard all stderr output
                 }
             }));
 
@@ -46,48 +35,28 @@ public class Main {
                     .dumb(true)
                     .build();
 
-            // Create a custom completer with debug output to file
+            // Create a custom completer that properly replaces the word
             Completer completer = new Completer() {
                 @Override
                 public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
                     String buffer = line.line();
-                    int cursor = line.cursor();
                     
-                    debug("=== Completer called ===");
-                    debug("Full buffer: '" + buffer + "'");
-                    debug("Buffer length: " + buffer.length());
-                    debug("Cursor position: " + cursor);
+                    // Find the word being completed (everything before cursor)
+                    String word = line.word();
                     
-                    // Get the word being completed
-                    String word = "";
-                    if (cursor > 0 && cursor <= buffer.length()) {
-                        word = buffer.substring(0, cursor);
-                        debug("Word before cursor: '" + word + "'");
+                    // Only complete if we have a partial command at the beginning
+                    if (line.wordIndex() == 0) { // Only complete the first word
+                        if ("echo".startsWith(word) && !word.equals("echo")) {
+                            candidates.add(new Candidate("echo ", word, true));
+                        }
+                        if ("exit".startsWith(word) && !word.equals("exit")) {
+                            candidates.add(new Candidate("exit ", word, true));
+                        }
                     }
-                    
-                    String trimmed = word.trim();
-                    debug("Trimmed word: '" + trimmed + "'");
-                    
-                    // Check for matches
-                    if (trimmed.equals("ech")) {
-                        debug("Matched 'ech', adding 'echo ' candidate");
-                        candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
-                    } else if (trimmed.equals("exi")) {
-                        debug("Matched 'exi', adding 'exit ' candidate");
-                        candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
-                    } else if (trimmed.equals("e")) {
-                        debug("Matched 'e', adding both candidates");
-                        candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
-                        candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
-                    } else {
-                        debug("No match for '" + trimmed + "'");
-                    }
-                    
-                    debug("Candidates added: " + candidates.size());
                 }
             };
 
-            // Build LineReader
+            // Build LineReader with proper completion options
             LineReader lineReader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(completer)
@@ -95,36 +64,24 @@ public class Main {
                     .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
                     .build();
 
-            debug("Shell ready, waiting for input");
-
             while (true) {
                 try {
                     String rawInput = lineReader.readLine("$ ");
-                    debug("Raw input after readLine: '" + rawInput + "'");
-                    
                     if (rawInput == null) {
-                        debug("EOF received");
                         break;
                     }
 
-                    debug("Processing input: '" + rawInput + "'");
-                    
-                    if (rawInput.trim().equals("exit") || rawInput.trim().startsWith("exit ")) {
-                        debug("Exit command received");
-                        if (debugWriter != null) {
-                            debugWriter.close();
-                        }
+                    // Handle exit command (with or without trailing space)
+                    String trimmedInput = rawInput.trim();
+                    if (trimmedInput.equals("exit") || trimmedInput.equals("exit")) {
                         System.exit(0);
                     }
 
-                    if (rawInput.trim().isEmpty()) {
-                        debug("Empty input, continuing");
+                    if (trimmedInput.isEmpty()) {
                         continue;
                     }
 
-                    List<String> tokens = tokenize(rawInput.trim());
-                    debug("Tokens: " + tokens);
-
+                    List<String> tokens = tokenize(trimmedInput);
                     if (tokens.isEmpty()) {
                         continue;
                     }
@@ -140,8 +97,6 @@ public class Main {
 
                     String command = commandArgs.get(0);
                     String argsCleaned = String.join(" ", commandArgs);
-
-                    debug("Executing command: '" + command + "'");
 
                     // Handle specific commands
                     switch (command) {
@@ -168,34 +123,18 @@ public class Main {
                             break;
                     }
                 } catch (org.jline.reader.UserInterruptException e) {
-                    debug("User interrupt");
                     System.out.println("^C");
                 } catch (org.jline.reader.EndOfFileException e) {
-                    debug("EOF exception");
                     break;
                 }
             }
         } catch (Exception e) {
-            debug("Exception in main: " + e.getMessage());
-            if (debugWriter != null) {
-                e.printStackTrace(debugWriter);
-            }
+            // Silent fail
         } finally {
-            if (debugWriter != null) {
-                debugWriter.close();
-            }
             System.setErr(originalErr);
         }
     }
 
-    private static void debug(String message) {
-        if (debugWriter != null) {
-            debugWriter.println(message);
-            debugWriter.flush();
-        }
-    }
-
-    // All your existing methods remain exactly the same
     static void handleEcho(List<String> commandArgs) {
         if (commandArgs.size() > 1) {
             System.out.println(String.join(" ", commandArgs.subList(1, commandArgs.size())));
