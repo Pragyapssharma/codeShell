@@ -1,3 +1,5 @@
+package com.codecrafters.shell;
+
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
