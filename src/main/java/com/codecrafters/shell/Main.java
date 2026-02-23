@@ -43,18 +43,33 @@ public class Main {
                 @Override
                 public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
                     String buffer = line.line().trim();
+                    int cursor = line.cursor();
                     
                     // Only complete if we have a partial command
                     if (buffer.isEmpty()) {
                         return;
                     }
                     
-                    // Check for matches with builtin commands
-                    if ("echo".startsWith(buffer)) {
-                        candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
+                    // Get the current word being typed
+                    String currentWord = "";
+                    if (cursor <= buffer.length()) {
+                        String beforeCursor = buffer.substring(0, Math.min(cursor, buffer.length()));
+                        int lastSpace = beforeCursor.lastIndexOf(' ');
+                        if (lastSpace >= 0) {
+                            currentWord = beforeCursor.substring(lastSpace + 1);
+                        } else {
+                            currentWord = beforeCursor;
+                        }
                     }
-                    if ("exit".startsWith(buffer)) {
-                        candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
+                    
+                    // Check for matches with builtin commands
+                    if (!currentWord.isEmpty()) {
+                        if ("echo".startsWith(currentWord)) {
+                            candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
+                        }
+                        if ("exit".startsWith(currentWord)) {
+                            candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
+                        }
                     }
                 }
             };
@@ -65,8 +80,10 @@ public class Main {
                     .completer(completer)
                     .option(LineReader.Option.AUTO_FRESH_LINE, false)
                     .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
-                    .option(LineReader.Option.COMPLETE_IN_WORD, true) // Complete while typing
-                    .variable(LineReader.BLINK_MATCHING_PAREN, 0) // Disable blinking
+                    .option(LineReader.Option.COMPLETE_IN_WORD, true)
+                    .option(LineReader.Option.AUTO_LIST, false)
+                    .option(LineReader.Option.AUTO_MENU, false)
+                    .variable(LineReader.BLINK_MATCHING_PAREN, 0)
                     .build();
 
             while (true) {
@@ -141,6 +158,7 @@ public class Main {
         }
     }
 
+    // All your existing methods remain exactly the same
     static void handleEcho(List<String> commandArgs) {
         if (commandArgs.size() > 1) {
             System.out.println(String.join(" ", commandArgs.subList(1, commandArgs.size())));
