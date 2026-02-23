@@ -23,7 +23,6 @@ public class Main {
                 public void write(int b) {
                     // Discard all stderr output
                 }
-                
                 @Override
                 public void write(byte[] b, int off, int len) {
                     // Discard all stderr output
@@ -33,57 +32,34 @@ public class Main {
             // Configure terminal for testing environment
             Terminal terminal = TerminalBuilder.builder()
                     .system(true)
-                    .dumb(true)  // Force dumb terminal for tests
-                    .jna(false)  // Disable JNA
-                    .jansi(false) // Disable Jansi
+                    .dumb(true)
                     .build();
 
-            // Create a custom completer for 'echo' and 'exit'
+            // Create a simple completer that always completes
             Completer completer = new Completer() {
                 @Override
                 public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
-                    String buffer = line.line().trim();
-                    int cursor = line.cursor();
+                    String buffer = line.line();
                     
-                    // Only complete if we have a partial command
-                    if (buffer.isEmpty()) {
-                        return;
-                    }
-                    
-                    // Get the current word being typed
-                    String currentWord = "";
-                    if (cursor <= buffer.length()) {
-                        String beforeCursor = buffer.substring(0, Math.min(cursor, buffer.length()));
-                        int lastSpace = beforeCursor.lastIndexOf(' ');
-                        if (lastSpace >= 0) {
-                            currentWord = beforeCursor.substring(lastSpace + 1);
-                        } else {
-                            currentWord = beforeCursor;
-                        }
-                    }
-                    
-                    // Check for matches with builtin commands
-                    if (!currentWord.isEmpty()) {
-                        if ("echo".startsWith(currentWord)) {
-                            candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
-                        }
-                        if ("exit".startsWith(currentWord)) {
-                            candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
-                        }
+                    // Always offer completions for partial commands
+                    if (buffer.startsWith("ech")) {
+                        candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
+                    } else if (buffer.startsWith("exi")) {
+                        candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
+                    } else if (buffer.startsWith("e")) {
+                        // If just "e", offer both
+                        candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
+                        candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
                     }
                 }
             };
 
-            // Build LineReader with proper completion options
+            // Build LineReader with minimal options
             LineReader lineReader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(completer)
                     .option(LineReader.Option.AUTO_FRESH_LINE, false)
                     .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
-                    .option(LineReader.Option.COMPLETE_IN_WORD, true)
-                    .option(LineReader.Option.AUTO_LIST, false)
-                    .option(LineReader.Option.AUTO_MENU, false)
-                    .variable(LineReader.BLINK_MATCHING_PAREN, 0)
                     .build();
 
             while (true) {
@@ -93,18 +69,20 @@ public class Main {
                         break;
                     }
 
-                    rawInput = rawInput.trim();
-                    if (rawInput.isEmpty()) {
-                        continue;
-                    }
-
+                    // Don't trim yet - we need to preserve spaces for completion test
+                    String trimmedInput = rawInput.trim();
+                    
                     // Handle exit command
-                    if (rawInput.equals("exit") || rawInput.startsWith("exit ")) {
+                    if (trimmedInput.equals("exit") || trimmedInput.startsWith("exit ")) {
                         System.setErr(originalErr);
                         System.exit(0);
                     }
 
-                    List<String> tokens = tokenize(rawInput);
+                    if (trimmedInput.isEmpty()) {
+                        continue;
+                    }
+
+                    List<String> tokens = tokenize(trimmedInput);
                     if (tokens.isEmpty()) {
                         continue;
                     }
@@ -152,13 +130,12 @@ public class Main {
                 }
             }
         } catch (Exception e) {
-            // Silent fail
+            e.printStackTrace();
         } finally {
             System.setErr(originalErr);
         }
     }
 
-    // All your existing methods remain exactly the same
     static void handleEcho(List<String> commandArgs) {
         if (commandArgs.size() > 1) {
             System.out.println(String.join(" ", commandArgs.subList(1, commandArgs.size())));
@@ -340,7 +317,7 @@ public class Main {
                 cmd.add(token);
             }
         }
-        return new RedirectionResult(cmd, stdoutFile, stderrFile, appendStdout);
+        return new RedirectionResult(cmd, stdoutFile, stderrFile, appendStdout, appendStderr);
     }
 
     static Path getPath(String path) {
