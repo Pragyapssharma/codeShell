@@ -6,9 +6,11 @@ import java.util.*;
 import org.jline.reader.*;
 import org.jline.terminal.*;
 import org.jline.reader.impl.*;
-import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.reader.impl.completer.*;
 
 public class Main {
+
+    private static final List<String> BUILTINS = Arrays.asList("echo", "exit", "type", "pwd", "cd", "ls", "help");
 
     public static void main(String[] args) {
         try {
@@ -33,9 +35,29 @@ public class Main {
             DefaultParser parser = new DefaultParser();
             parser.setEscapeChars(new char[0]);
 
-            // Create completer with commands including space
-            // This is the key - add space after commands
-            StringsCompleter completer = new StringsCompleter("echo ", "exit ");
+            // Create a custom completer that mimics Python's readline behavior
+            Completer completer = new Completer() {
+                @Override
+                public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
+                    String buffer = line.line();
+                    
+                    // Split the line to check if we're at the beginning (typing command)
+                    String[] parts = buffer.trim().split("\\s+");
+                    
+                    // If we're at the beginning of the command (first word or empty line)
+                    if (parts.length == 0 || (parts.length == 1 && !buffer.endsWith(" "))) {
+                        String textToComplete = parts.length > 0 ? parts[0] : "";
+                        
+                        // Complete builtin commands that start with the text
+                        for (String cmd : BUILTINS) {
+                            if (cmd.startsWith(textToComplete) && !textToComplete.equals(cmd)) {
+                                // Add space after completion like Python version
+                                candidates.add(new Candidate(cmd + " ", cmd, null, null, null, null, true));
+                            }
+                        }
+                    }
+                }
+            };
 
             // Build LineReader
             LineReader lineReader = LineReaderBuilder.builder()
