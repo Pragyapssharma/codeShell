@@ -29,12 +29,13 @@ public class Main {
                     .dumb(true)
                     .build();
 
-            // Create parser with escape chars disabled (like working code)
+            // Create parser with escape chars disabled
             DefaultParser parser = new DefaultParser();
             parser.setEscapeChars(new char[0]);
 
-            // Create completer with just the command names (no spaces)
-            StringsCompleter completer = new StringsCompleter("echo", "exit");
+            // Create completer with commands including space
+            // This is the key - add space after commands
+            StringsCompleter completer = new StringsCompleter("echo ", "exit ");
 
             // Build LineReader
             LineReader lineReader = LineReaderBuilder.builder()
