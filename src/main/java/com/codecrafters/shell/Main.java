@@ -5,7 +5,7 @@ import java.nio.file.*;
 import java.util.*;
 import org.jline.reader.*;
 import org.jline.terminal.*;
-import org.jline.reader.impl.completer.StringsCompleter;
+import org.jline.reader.impl.*;
 
 public class Main {
 
@@ -28,10 +28,27 @@ public class Main {
                     .dumb(true)
                     .build();
 
-            // Create completer for echo and exit with trailing spaces
-            StringsCompleter completer = new StringsCompleter("echo ", "exit ");
+            // Create a custom completer that forces replacement
+            Completer completer = new Completer() {
+                @Override
+                public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
+                    String buffer = line.line();
+                    String trimmed = buffer.trim();
+                    
+                    // Only complete if it's the first word and a partial match
+                    if (line.wordIndex() == 0) {
+                        if ("echo".startsWith(trimmed) && !trimmed.equals("echo")) {
+                            // Add candidate that replaces the current word
+                            candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
+                        }
+                        if ("exit".startsWith(trimmed) && !trimmed.equals("exit")) {
+                            candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
+                        }
+                    }
+                }
+            };
 
-            // Build LineReader
+            // Build LineReader with specific options for completion
             LineReader lineReader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(completer)
@@ -108,6 +125,7 @@ public class Main {
         }
     }
 
+    // All your existing methods remain exactly the same
     static void handleEcho(List<String> commandArgs) {
         if (commandArgs.size() > 1) {
             System.out.println(String.join(" ", commandArgs.subList(1, commandArgs.size())));
