@@ -9,46 +9,68 @@ import org.jline.reader.impl.*;
 
 public class Main {
 
+    private static PrintWriter debugWriter;
+
     public static void main(String[] args) {
         try {
+            // Initialize debug file
+            try {
+                debugWriter = new PrintWriter(new FileWriter("/tmp/shell-debug.log", true));
+                debug("=== Shell started at " + new Date() + " ===");
+            } catch (Exception e) {
+                System.err.println("Failed to create debug file: " + e.getMessage());
+            }
+
             // Disable JLine logging
             System.setProperty("org.jline.log.level", "OFF");
             
-            // Redirect stderr to prevent warnings
-            System.setErr(new PrintStream(new OutputStream() {
-                @Override
-                public void write(int b) { }
-                @Override
-                public void write(byte[] b, int off, int len) { }
-            }));
-
             // Configure terminal
             Terminal terminal = TerminalBuilder.builder()
                     .system(true)
                     .dumb(true)
                     .build();
 
-            // Create a custom completer that forces replacement
+            debug("Terminal created: " + terminal.getClass().getName());
+
+            // Create a custom completer with debug
             Completer completer = new Completer() {
                 @Override
                 public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
+                    debug("=== Completer called ===");
+                    debug("Full line: '" + line.line() + "'");
+                    debug("Cursor position: " + line.cursor());
+                    debug("Word index: " + line.wordIndex());
+                    debug("Current word: '" + line.word() + "'");
+                    
                     String buffer = line.line();
                     String trimmed = buffer.trim();
+                    debug("Trimmed buffer: '" + trimmed + "'");
                     
-                    // Only complete if it's the first word and a partial match
+                    // Only complete if it's the first word
                     if (line.wordIndex() == 0) {
-                        if ("echo".startsWith(trimmed) && !trimmed.equals("echo")) {
-                            // Add candidate that replaces the current word
+                        debug("Completing first word");
+                        
+                        if ("echo".startsWith(trimmed) && !trimmed.equals("echo") && !trimmed.isEmpty()) {
+                            debug("MATCH: Adding 'echo ' candidate for '" + trimmed + "'");
                             candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
+                            debug("Candidates size after add: " + candidates.size());
                         }
-                        if ("exit".startsWith(trimmed) && !trimmed.equals("exit")) {
+                        if ("exit".startsWith(trimmed) && !trimmed.equals("exit") && !trimmed.isEmpty()) {
+                            debug("MATCH: Adding 'exit ' candidate for '" + trimmed + "'");
                             candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
+                            debug("Candidates size after add: " + candidates.size());
                         }
+                        if (!"echo".startsWith(trimmed) && !"exit".startsWith(trimmed)) {
+                            debug("NO MATCH for: '" + trimmed + "'");
+                        }
+                    } else {
+                        debug("Not completing - word index is " + line.wordIndex());
                     }
+                    debug("=== Completer finished ===\n");
                 }
             };
 
-            // Build LineReader with specific options for completion
+            // Build LineReader with specific options
             LineReader lineReader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(completer)
@@ -56,26 +78,37 @@ public class Main {
                     .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
                     .build();
 
+            debug("LineReader created");
+
             while (true) {
                 try {
+                    debug("\n=== Waiting for input ===");
                     String rawInput = lineReader.readLine("$ ");
+                    debug("Raw input after readLine: '" + rawInput + "'");
                     
                     if (rawInput == null) {
+                        debug("EOF received");
                         break;
                     }
 
                     String trimmedInput = rawInput.trim();
+                    debug("Trimmed input: '" + trimmedInput + "'");
                     
                     // Handle exit command
                     if (trimmedInput.equals("exit")) {
+                        debug("Exit command received");
+                        if (debugWriter != null) debugWriter.close();
                         System.exit(0);
                     }
 
                     if (trimmedInput.isEmpty()) {
+                        debug("Empty input, continuing");
                         continue;
                     }
 
                     List<String> tokens = tokenize(trimmedInput);
+                    debug("Tokens: " + tokens);
+
                     if (tokens.isEmpty()) {
                         continue;
                     }
@@ -90,6 +123,8 @@ public class Main {
 
                     String command = commandArgs.get(0);
                     String argsCleaned = String.join(" ", commandArgs);
+
+                    debug("Executing command: '" + command + "'");
 
                     switch (command) {
                         case "echo":
@@ -115,13 +150,25 @@ public class Main {
                             break;
                     }
                 } catch (UserInterruptException e) {
+                    debug("User interrupt");
                     System.out.println("^C");
                 } catch (EndOfFileException e) {
+                    debug("EOF exception");
                     break;
                 }
             }
         } catch (Exception e) {
-            // Silent fail
+            debug("Exception in main: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            if (debugWriter != null) debugWriter.close();
+        }
+    }
+
+    private static void debug(String message) {
+        if (debugWriter != null) {
+            debugWriter.println(message);
+            debugWriter.flush();
         }
     }
 
