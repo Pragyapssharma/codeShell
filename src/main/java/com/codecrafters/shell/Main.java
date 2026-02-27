@@ -6,6 +6,7 @@ import java.util.*;
 import org.jline.reader.*;
 import org.jline.terminal.*;
 import org.jline.reader.impl.*;
+import org.jline.reader.impl.completer.StringsCompleter;
 
 public class Main {
 
@@ -28,36 +29,18 @@ public class Main {
                     .dumb(true)
                     .build();
 
-            // Create a custom completer that forces replacement
-            Completer completer = new Completer() {
-                @Override
-                public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
-                    String buffer = line.line();
-                    
-                    // For "ech" -> complete to "echo "
-                    if (buffer.equals("ech")) {
-                        candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
-                    }
-                    // For "exi" -> complete to "exit "
-                    else if (buffer.equals("exi")) {
-                        candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
-                    }
-                    // For partial matches like "e", "ec", "ex"
-                    else if (buffer.startsWith("e") && buffer.length() < 4) {
-                        if ("echo".startsWith(buffer)) {
-                            candidates.add(new Candidate("echo ", "echo", null, null, null, null, true));
-                        }
-                        if ("exit".startsWith(buffer)) {
-                            candidates.add(new Candidate("exit ", "exit", null, null, null, null, true));
-                        }
-                    }
-                }
-            };
+            // Create parser with escape chars disabled (like working code)
+            DefaultParser parser = new DefaultParser();
+            parser.setEscapeChars(new char[0]);
 
-            // Build LineReader with specific options
+            // Create completer with just the command names (no spaces)
+            StringsCompleter completer = new StringsCompleter("echo", "exit");
+
+            // Build LineReader
             LineReader lineReader = LineReaderBuilder.builder()
                     .terminal(terminal)
                     .completer(completer)
+                    .parser(parser)
                     .option(LineReader.Option.AUTO_FRESH_LINE, false)
                     .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
                     .build();
@@ -127,7 +110,7 @@ public class Main {
                 }
             }
         } catch (Exception e) {
-            // Silent fail
+            e.printStackTrace();
         }
     }
 
