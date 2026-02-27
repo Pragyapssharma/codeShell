@@ -3,179 +3,111 @@ package com.codecrafters.shell;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
+import org.jline.reader.*;
+import org.jline.terminal.*;
+import org.jline.reader.impl.completer.StringsCompleter;
 
 public class Main {
 
-    private static PrintWriter debugWriter;
-    private static final boolean DEBUG = true;
-
     public static void main(String[] args) {
         try {
-            // Initialize debug file
-            try {
-                debugWriter = new PrintWriter(new FileWriter("/tmp/shell-debug.log", true));
-                debug("=== Shell started at " + new Date() + " ===");
-            } catch (Exception e) {
-                System.err.println("Failed to create debug file: " + e.getMessage());
-            }
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+            // Disable JLine logging
+            System.setProperty("org.jline.log.level", "OFF");
             
+            // Redirect stderr to prevent warnings
+            System.setErr(new PrintStream(new OutputStream() {
+                @Override
+                public void write(int b) { }
+                @Override
+                public void write(byte[] b, int off, int len) { }
+            }));
+
+            // Configure terminal
+            Terminal terminal = TerminalBuilder.builder()
+                    .system(true)
+                    .dumb(true)
+                    .build();
+
+            // Create completer for echo and exit with trailing spaces
+            StringsCompleter completer = new StringsCompleter("echo ", "exit ");
+
+            // Build LineReader
+            LineReader lineReader = LineReaderBuilder.builder()
+                    .terminal(terminal)
+                    .completer(completer)
+                    .option(LineReader.Option.AUTO_FRESH_LINE, false)
+                    .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
+                    .build();
+
             while (true) {
-                System.out.print("$ ");
-                System.out.flush();
-                debug("Prompt displayed");
-                
-                // Read input with potential tab completion
-                String rawInput = readLineWithTab(reader);
-                debug("Raw input after readLine: '" + rawInput + "'");
-                
-                if (rawInput == null) {
-                    debug("EOF received");
+                try {
+                    String rawInput = lineReader.readLine("$ ");
+                    
+                    if (rawInput == null) {
+                        break;
+                    }
+
+                    String trimmedInput = rawInput.trim();
+                    
+                    // Handle exit command
+                    if (trimmedInput.equals("exit")) {
+                        System.exit(0);
+                    }
+
+                    if (trimmedInput.isEmpty()) {
+                        continue;
+                    }
+
+                    List<String> tokens = tokenize(trimmedInput);
+                    if (tokens.isEmpty()) {
+                        continue;
+                    }
+
+                    RedirectionResult redir = parseCommandWithRedirection(tokens);
+                    handleRedirection(redir);
+
+                    List<String> commandArgs = redir.commandArgs;
+                    if (commandArgs.isEmpty()) {
+                        continue;
+                    }
+
+                    String command = commandArgs.get(0);
+                    String argsCleaned = String.join(" ", commandArgs);
+
+                    switch (command) {
+                        case "echo":
+                            handleEcho(commandArgs);
+                            break;
+                        case "type":
+                            type(argsCleaned);
+                            break;
+                        case "pwd":
+                            System.out.println(Paths.get(System.getProperty("user.dir")).toAbsolutePath());
+                            break;
+                        case "cd":
+                            handleCd(commandArgs);
+                            break;
+                        case "ls":
+                            lsCommand(argsCleaned);
+                            break;
+                        case "help":
+                            helpCommand();
+                            break;
+                        default:
+                            commandExec(redir);
+                            break;
+                    }
+                } catch (UserInterruptException e) {
+                    System.out.println("^C");
+                } catch (EndOfFileException e) {
                     break;
-                }
-
-                String trimmedInput = rawInput.trim();
-                debug("Trimmed input: '" + trimmedInput + "'");
-                
-                // Handle exit command
-                if (trimmedInput.equals("exit")) {
-                    debug("Exit command received");
-                    if (debugWriter != null) debugWriter.close();
-                    System.exit(0);
-                }
-
-                if (trimmedInput.isEmpty()) {
-                    debug("Empty input, continuing");
-                    continue;
-                }
-
-                List<String> tokens = tokenize(trimmedInput);
-                debug("Tokens: " + tokens);
-
-                if (tokens.isEmpty()) {
-                    continue;
-                }
-
-                RedirectionResult redir = parseCommandWithRedirection(tokens);
-                handleRedirection(redir);
-
-                List<String> commandArgs = redir.commandArgs;
-                if (commandArgs.isEmpty()) {
-                    continue;
-                }
-
-                String command = commandArgs.get(0);
-                String argsCleaned = String.join(" ", commandArgs);
-
-                debug("Executing command: '" + command + "'");
-
-                switch (command) {
-                    case "echo":
-                        handleEcho(commandArgs);
-                        break;
-                    case "type":
-                        type(argsCleaned);
-                        break;
-                    case "pwd":
-                        System.out.println(Paths.get(System.getProperty("user.dir")).toAbsolutePath());
-                        break;
-                    case "cd":
-                        handleCd(commandArgs);
-                        break;
-                    case "ls":
-                        lsCommand(argsCleaned);
-                        break;
-                    case "help":
-                        helpCommand();
-                        break;
-                    default:
-                        commandExec(redir);
-                        break;
                 }
             }
         } catch (Exception e) {
-            debug("Exception in main: " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            if (debugWriter != null) debugWriter.close();
+            // Silent fail
         }
     }
 
-    private static void debug(String message) {
-        if (DEBUG && debugWriter != null) {
-            debugWriter.println(new Date() + " - " + message);
-            debugWriter.flush();
-        }
-    }
-
-    private static String readLineWithTab(BufferedReader reader) throws IOException {
-        StringBuilder line = new StringBuilder();
-        List<Integer> charBuffer = new ArrayList<>();
-        
-        debug("readLineWithTab started");
-        
-        while (true) {
-            int ch = System.in.read();
-            debug("Read character: " + ch + " ('" + (ch >= 32 ? (char)ch : "special") + "')");
-            
-            if (ch == -1) {
-                debug("EOF detected");
-                return null;
-            }
-            
-            if (ch == '\t') {
-                debug("TAB key pressed");
-                debug("Current line before TAB: '" + line.toString() + "'");
-                
-                // Handle tab completion
-                String currentLine = line.toString();
-                String trimmed = currentLine.trim();
-                debug("Trimmed line for completion: '" + trimmed + "'");
-                
-                // Check for matches
-                if ("ech".equals(trimmed)) {
-                    debug("MATCH: 'ech' found, completing to 'echo '");
-                    line = new StringBuilder("echo ");
-                    // Clear the current line and print the new one
-                    System.out.print("\r$ echo ");
-                    System.out.flush();
-                    debug("Line after completion: '" + line.toString() + "'");
-                } else if ("exi".equals(trimmed)) {
-                    debug("MATCH: 'exi' found, completing to 'exit '");
-                    line = new StringBuilder("exit ");
-                    System.out.print("\r$ exit ");
-                    System.out.flush();
-                    debug("Line after completion: '" + line.toString() + "'");
-                } else if (trimmed.startsWith("e") && trimmed.length() < 4) {
-                    debug("PARTIAL MATCH: '" + trimmed + "' starts with e, completing to 'echo '");
-                    line = new StringBuilder("echo ");
-                    System.out.print("\r$ echo ");
-                    System.out.flush();
-                    debug("Line after completion: '" + line.toString() + "'");
-                } else {
-                    debug("NO MATCH for: '" + trimmed + "'");
-                }
-                continue;
-            }
-            
-            if (ch == '\n' || ch == '\r') {
-                debug("ENTER key pressed");
-                debug("Final line before return: '" + line.toString() + "'");
-                System.out.println();
-                return line.toString();
-            }
-            
-            // Regular character
-            line.append((char) ch);
-            charBuffer.add(ch);
-            debug("Added character: '" + (char)ch + "', current line: '" + line.toString() + "'");
-            System.out.print((char) ch);
-            System.out.flush();
-        }
-    }
-
-    // All your existing methods remain exactly the same
     static void handleEcho(List<String> commandArgs) {
         if (commandArgs.size() > 1) {
             System.out.println(String.join(" ", commandArgs.subList(1, commandArgs.size())));
