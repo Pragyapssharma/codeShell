@@ -99,7 +99,7 @@ public class Main {
                 System.out.print("\b \b");
             }
 
-            // Update currentLine and display only the completion
+            // Update currentLine and display the completion
             currentLine = new StringBuilder(completion);
             System.out.print(completion);
             System.out.flush();
