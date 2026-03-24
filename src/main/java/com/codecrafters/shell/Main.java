@@ -77,12 +77,15 @@ public class Main {
         String currentText = currentLine.toString();
         String trimmed = currentText.trim();
 
-        // Only complete the first word (no spaces allowed)
+        System.err.println("[DEBUG] handleTabCompletion called");
+        System.err.println("[DEBUG] currentLine='" + currentText + "'");
+        System.err.println("[DEBUG] trimmed='" + trimmed + "'");
+
         if (trimmed.contains(" ")) {
+            System.err.println("[DEBUG] contains space, skipping completion");
             return;
         }
 
-        // Only allow autocompletion for echo and exit
         List<String> matches = new ArrayList<>();
         for (String cmd : Arrays.asList("echo", "exit")) {
             if (cmd.startsWith(trimmed) && !cmd.equals(trimmed)) {
@@ -90,9 +93,11 @@ public class Main {
             }
         }
 
-        // If exactly one match, complete it
+        System.err.println("[DEBUG] matches=" + matches);
+
         if (matches.size() == 1) {
             String completion = matches.get(0) + " ";
+            System.err.println("[DEBUG] completion='" + completion + "'");
 
             // Erase current typed characters
             for (int i = 0; i < currentLine.length(); i++) {
@@ -103,6 +108,8 @@ public class Main {
             currentLine = new StringBuilder(completion);
             System.out.print(completion);
             System.out.flush();
+
+            System.err.println("[DEBUG] currentLine after completion='" + currentLine + "'");
         }
     }
     
