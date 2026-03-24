@@ -76,32 +76,32 @@ public class Main {
     private static void handleTabCompletion() {
         String currentText = currentLine.toString();
         String trimmed = currentText.trim();
-        
-        // Don't complete if there are spaces (only complete the first word)
+
+        // Only complete the first word (no spaces allowed)
         if (trimmed.contains(" ")) {
             return;
         }
-        
-        // Find matching builtin commands
+
+        // Only allow autocompletion for echo and exit
         List<String> matches = new ArrayList<>();
-        for (String cmd : BUILTINS) {
+        for (String cmd : Arrays.asList("echo", "exit")) {
             if (cmd.startsWith(trimmed) && !cmd.equals(trimmed)) {
                 matches.add(cmd);
             }
         }
-        
+
         // If exactly one match, complete it
         if (matches.size() == 1) {
             String completion = matches.get(0) + " ";
-            
-            // Clear the current line
+
+            // Erase current typed characters
             for (int i = 0; i < currentLine.length(); i++) {
                 System.out.print("\b \b");
             }
-            
-            // Update currentLine and display
+
+            // Update currentLine and display only the completion
             currentLine = new StringBuilder(completion);
-            System.out.print("$ " + completion);
+            System.out.print(completion);
             System.out.flush();
         }
     }
